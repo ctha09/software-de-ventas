@@ -1,0 +1,46 @@
+<div class="checkout-bar">
+  <div class="barcode-input-container">
+    <i class="fas fa-barcode"></i>
+    <input type="text" placeholder="Escanee producto..." autofocus>
+  </div>
+
+  <div class="summary-glass">
+    <div class="summary-item">
+      <span>Subtotal:</span>
+      <strong>$15.200,00</strong>
+    </div>
+    <div class="summary-item main-total">
+      <span>TOTAL:</span>
+      <span class="price">$15.200,00</span>
+    </div>
+    <button class="btn-finalize">Finalizar Venta [F2]</button>
+  </div>
+</div>
+
+<style>
+  .checkout-bar {
+    display: flex;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    padding: 25px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+  }
+  .price {
+    font-size: 2.5rem;
+    color: #00ff88; /* Un verde neón sutil */
+    font-weight: bold;
+  }
+  .btn-finalize {
+    background: linear-gradient(135deg, #007bff, #00c6ff);
+    border: none;
+    padding: 15px 30px;
+    border-radius: 12px;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  }
+</style>
