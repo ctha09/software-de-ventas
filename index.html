@@ -2,35 +2,41 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StockMaster V.24.09.24</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMaster V.24.09.24 - LA BARRICA</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body onload="onLoad()">
 
-    <header class="main-nav">
-        <div class="logo">StockMaster</div>
-        <nav class="f-keys-menu">
-            <button class="nav-item"><span>Articulos</span> <small>[F1]</small></button>
-            <button class="nav-item"><span>Proveedores</span> <small>[F2]</small></button>
-            <button class="nav-item"><span>Clientes</span> <small>[F3]</small></button>
-            <button class="nav-item"><span>Usuarios</span> <small>[F4]</small></button>
-            <button class="nav-item active"><span>Ventas</span> <small>[F6]</small></button>
-            <button class="nav-item"><span>AFIP</span> <small>[F10]</small></button>
-            <button class="nav-item exit"><span>Salir</span> <small>[F12]</small></button>
+    <header class="main-nav-container">
+        <div class="software-titles">
+            <h1>StockMaster</h1>
+            <h2>LA BARRICA</h2>
+        </div>
+        <nav class="f-keys-grid">
+            <button class="nav-item"><span class="icon">📦</span><span class="text">Articulos</span> <small>[F1]</small></button>
+            <button class="nav-item"><span class="icon">🤝</span><span class="text">Proveedores</span> <small>[F2]</small></button>
+            <button class="nav-item"><span class="icon">👥</span><span class="text">Clientes</span> <small>[F3]</small></button>
+            <button class="nav-item"><span class="icon">👤</span><span class="text">Usuarios</span> <small>[F4]</small></button>
+            <button class="nav-item active"><span class="icon">🛒</span><span class="text">Ventas</span> <small>[F6]</small></button>
+            <button class="nav-item"><span class="icon">💼</span><span class="text">AFIP</span> <small>[F10]</small></button>
+            <button class="nav-item exit"><span class="icon">🚪</span><span class="text">Salir</span> <small>[F12]</small></button>
         </nav>
     </header>
 
-    <main class="content">
+    <main class="content-wrapper">
         
-        <section class="glass-panel sale-data">
-            <div class="panel-header">DATOS DE LA VENTA</div>
-            <div class="panel-content grid-forms">
-                <div class="input-group">
+        <section class="dark-panel sale-header-info">
+            <div class="panel-label">DATOS DE LA VENTA</div>
+            <div class="grid-form-layout">
+                <div class="input-block">
                     <label>Cliente</label>
-                    <input type="text" value="CONSUMIDOR FINAL" readonly>
-                    <button class="btn-icon">🔍</button>
+                    <div class="input-with-action">
+                        <input type="text" value="CONSUMIDOR FINAL" readonly>
+                        <button class="action-icon">🔍</button>
+                    </div>
                 </div>
-                <div class="input-group">
+                <div class="input-block">
                     <label>Tipo de Comprobante</label>
                     <select>
                         <option>FACTURA B</option>
@@ -38,7 +44,11 @@
                         <option>REMITO X</option>
                     </select>
                 </div>
-                <div class="input-group">
+                <div class="input-block info-only">
+                    <label>N° Venta</label>
+                    <span id="txt-nventa">9243</span>
+                </div>
+                <div class="input-block">
                     <label>Tipo de Pago</label>
                     <select>
                         <option>CONTADO</option>
@@ -46,22 +56,22 @@
                         <option>C. CORRIENTE</option>
                     </select>
                 </div>
-                <div class="input-group info-read-only">
-                    <label>N° Venta</label>
-                    <span id="txt-nventa">9243</span>
+                <div class="input-block">
+                    <label>Fecha</label>
+                    <input type="text" value="Sabado, 4 de Abril de 2026" readonly>
                 </div>
             </div>
         </section>
 
-        <section class="glass-panel products-table">
+        <section class="dark-panel products-grid-container">
             <table id="ventas-grid">
                 <thead>
                     <tr>
-                        <th style="width: 15%">Código</th>
-                        <th style="width: 50%">Descripción</th>
-                        <th style="width: 10%">Cant.</th>
-                        <th style="width: 15%">Precio U.</th>
-                        <th style="width: 10%">Total</th>
+                        <th>Código</th>
+                        <th>Cantidad</th>
+                        <th>Detalle</th>
+                        <th>Precio U.</th>
+                        <th>Total</th>
                     </tr>
                 </thead>
                 <tbody id="grid-body">
@@ -69,38 +79,43 @@
             </table>
         </section>
 
-        <footer class="glass-footer">
+    </main>
+
+    <footer class="tech-footer">
+        
+        <div class="left-action-zone">
+            <div class="neon-input-wrapper">
+                <input type="text" id="barcode-input" placeholder="Escanee producto... [Codigo o Nombre]" autofocus>
+            </div>
             
-            <div class="scanner-zone">
-                <div class="modern-input-wrapper barcode-focus">
-                    <input type="text" id="barcode-input" placeholder="Escanee producto... [Codigo o Nombre]" autofocus>
-                </div>
-                <div class="action-buttons-list">
-                    <button class="btn-action">Guardar [F2]</button>
-                    <button class="btn-action cancel">Cancelar [F5]</button>
-                    <button class="btn-action">Imprimir [F8]</button>
-                </div>
+            <div class="action-buttons-row">
+                <button class="btn-f-action save">Guardar [F2]</button>
+                <button class="btn-f-action cancel">Cancelar [F5]</button>
+                <button class="btn-f-action print">Imprimir [F8]</button>
+                <button class="btn-f-action other">Cambiar Precio [F9]</button>
             </div>
-
-            <div class="totales-zone">
-                <div class="totales-breakdown">
-                    <div>SUBTOTAL: <span>$0.00</span></div>
-                    <div>IVA 21%: <span id="txt-iva21">$0.00</span></div>
-                </div>
-                <div class="main-total-panel">
-                    <label>TOTAL:</label>
-                    <span id="txt-total">$0.00</span>
-                </div>
-            </div>
-
-        </footer>
-
-        <div class="status-bar">
-            <span>VP Sistemas & Servicios</span>
-            <span id="txt-fecha-hora">Sabado, 4 de Abril de 2026</span>
         </div>
 
-    </main>
+        <div class="totals-zone">
+            <div class="totals-breakdown">
+                <div class="total-item">SubTotal $0.00 <span class="val">$0.00</span></div>
+                <div class="total-item">Discount% 0 <span class="val">$0.00</span></div>
+                <div class="total-item">Surcharge% 0 <span class="val">$0.00</span></div>
+                <div class="total-item">VAT 10.5% $0.00 <span class="val">$0.00</span></div>
+                <div class="total-item">VAT 21.0% $0.00 <span class="val" id="txt-iva21">$0.00</span></div>
+            </div>
+            <div class="massive-total-panel">
+                <span class="label">TOTAL:</span>
+                <span class="value" id="txt-total">$0.00</span>
+            </div>
+        </div>
+
+    </footer>
+
+    <div class="status-bar">
+        <span>VP Sistemas & Servicios</span>
+        <span>4 de Abril de 2026</span>
+    </div>
 
     <script src="renderer.js"></script>
 </body>
