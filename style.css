@@ -1,0 +1,101 @@
+:root {
+    --bg-dark: #0d1117;
+    --panel-bg: rgba(22, 27, 34, 0.8);
+    --accent: #007bff;
+    --success: #00ff88;
+    --text: #c9d1d9;
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Menú Superior Estilo Moderno */
+.main-nav {
+    background: var(--panel-bg);
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.nav-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.nav-item:hover {
+    background: var(--accent);
+    transform: translateY(-2px);
+}
+
+/* Paneles de Datos */
+.glass-panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    margin: 20px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+
+/* Tabla de Productos */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th {
+    text-align: left;
+    color: var(--accent);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 10px;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+/* Footer de Totales e Input */
+.glass-footer {
+    margin-top: auto;
+    background: rgba(22, 27, 34, 0.95);
+    padding: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--accent);
+}
+
+#barcode-input {
+    background: #000;
+    border: 2px solid var(--accent);
+    color: var(--success);
+    padding: 15px;
+    font-size: 1.2rem;
+    border-radius: 30px;
+    width: 400px;
+    outline: none;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
+}
+
+.main-total-panel span {
+    font-size: 3.5rem;
+    color: var(--success);
+    font-weight: bold;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+}
