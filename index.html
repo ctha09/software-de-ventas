@@ -2,82 +2,106 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StockMaster AFIP</title>
-    <style>
-        /* Tu CSS de Glassmorphism aquí */
-        body { background: #1a1a1a; color: white; font-family: sans-serif; }
-        .checkout-bar { position: fixed; bottom: 0; width: 100%; padding: 20px; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; }
-        .total-display { color: #00ff88; font-size: 3rem; font-weight: bold; }
-        #lista-ventas { margin: 20px; border-collapse: collapse; width: 90%; }
-        #lista-ventas th, #lista-ventas td { border-bottom: 1px solid #444; padding: 10px; text-align: left; }
-    </style>
+    <title>StockMaster V.24.09.24</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body onload="onLoad()">
 
-    <h2>Nueva Venta</h2>
-    
-    <table id="lista-ventas">
-        <thead>
-            <tr>
-                <th>Código</th>
-                <th>Descripción</th>
-                <th>Precio</th>
-            </tr>
-        </thead>
-        <tbody id="tabla-body">
-            </tbody>
-    </table>
+    <header class="main-nav">
+        <div class="logo">StockMaster</div>
+        <nav class="f-keys-menu">
+            <button class="nav-item"><span>Articulos</span> <small>[F1]</small></button>
+            <button class="nav-item"><span>Proveedores</span> <small>[F2]</small></button>
+            <button class="nav-item"><span>Clientes</span> <small>[F3]</small></button>
+            <button class="nav-item"><span>Usuarios</span> <small>[F4]</small></button>
+            <button class="nav-item active"><span>Ventas</span> <small>[F6]</small></button>
+            <button class="nav-item"><span>AFIP</span> <small>[F10]</small></button>
+            <button class="nav-item exit"><span>Salir</span> <small>[F12]</small></button>
+        </nav>
+    </header>
 
-    <div class="checkout-bar">
-        <input type="text" id="barcode-input" placeholder="Escanee producto..." autofocus 
-               style="padding: 10px; border-radius: 5px; border: none; width: 300px;">
+    <main class="content">
         
-        <div class="summary">
-            <span>TOTAL:</span>
-            <span class="total-display" id="total-venda">$0.00</span>
-            <button onclick="finalizarVenta()" style="padding: 15px 30px; background: #007bff; color: white; border: none; border-radius: 10px; cursor: pointer; margin-left: 20px;">
-                Finalizar Venta [F2]
-            </button>
+        <section class="glass-panel sale-data">
+            <div class="panel-header">DATOS DE LA VENTA</div>
+            <div class="panel-content grid-forms">
+                <div class="input-group">
+                    <label>Cliente</label>
+                    <input type="text" value="CONSUMIDOR FINAL" readonly>
+                    <button class="btn-icon">🔍</button>
+                </div>
+                <div class="input-group">
+                    <label>Tipo de Comprobante</label>
+                    <select>
+                        <option>FACTURA B</option>
+                        <option>FACTURA C</option>
+                        <option>REMITO X</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Tipo de Pago</label>
+                    <select>
+                        <option>CONTADO</option>
+                        <option>TARJETA</option>
+                        <option>C. CORRIENTE</option>
+                    </select>
+                </div>
+                <div class="input-group info-read-only">
+                    <label>N° Venta</label>
+                    <span id="txt-nventa">9243</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="glass-panel products-table">
+            <table id="ventas-grid">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Código</th>
+                        <th style="width: 50%">Descripción</th>
+                        <th style="width: 10%">Cant.</th>
+                        <th style="width: 15%">Precio U.</th>
+                        <th style="width: 10%">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="grid-body">
+                    </tbody>
+            </table>
+        </section>
+
+        <footer class="glass-footer">
+            
+            <div class="scanner-zone">
+                <div class="modern-input-wrapper barcode-focus">
+                    <input type="text" id="barcode-input" placeholder="Escanee producto... [Codigo o Nombre]" autofocus>
+                </div>
+                <div class="action-buttons-list">
+                    <button class="btn-action">Guardar [F2]</button>
+                    <button class="btn-action cancel">Cancelar [F5]</button>
+                    <button class="btn-action">Imprimir [F8]</button>
+                </div>
+            </div>
+
+            <div class="totales-zone">
+                <div class="totales-breakdown">
+                    <div>SUBTOTAL: <span>$0.00</span></div>
+                    <div>IVA 21%: <span id="txt-iva21">$0.00</span></div>
+                </div>
+                <div class="main-total-panel">
+                    <label>TOTAL:</label>
+                    <span id="txt-total">$0.00</span>
+                </div>
+            </div>
+
+        </footer>
+
+        <div class="status-bar">
+            <span>VP Sistemas & Servicios</span>
+            <span id="txt-fecha-hora">Sabado, 4 de Abril de 2026</span>
         </div>
-    </div>
 
-    <script>
-        const { buscarProducto } = require('./database.js');
-        let total = 0;
-        const input = document.getElementById('barcode-input');
-        const tabla = document.getElementById('tabla-body');
-        const totalTxt = document.getElementById('total-venda');
+    </main>
 
-        // Escuchar el Enter del Lector de Barras
-        input.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                const producto = await buscarProducto(input.value);
-                
-                if (producto) {
-                    agregarATabla(producto);
-                } else {
-                    alert("Producto no encontrado");
-                }
-                input.value = ''; // Limpiar para el próximo escaneo
-            }
-        });
-
-        function agregarATabla(p) {
-            const row = tabla.insertRow();
-            row.innerHTML = `<td>${p.codigo}</td><td>${p.nombre}</td><td>$${p.precio.toFixed(2)}</td>`;
-            total += p.precio;
-            totalTxt.innerText = `$${total.toFixed(2)}`;
-        }
-
-        function finalizarVenta() {
-            // Aquí llamarás a la función de AFIP más adelante
-            alert("Enviando a AFIP... Total: $" + total);
-        }
-
-        // Atajo de teclado F2 para finalizar
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'F2') finalizarVenta();
-        });
-    </script>
+    <script src="renderer.js"></script>
 </body>
 </html>
