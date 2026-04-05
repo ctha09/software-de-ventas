@@ -1,46 +1,83 @@
-<div class="checkout-bar">
-  <div class="barcode-input-container">
-    <i class="fas fa-barcode"></i>
-    <input type="text" placeholder="Escanee producto..." autofocus>
-  </div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>StockMaster AFIP</title>
+    <style>
+        /* Tu CSS de Glassmorphism aquí */
+        body { background: #1a1a1a; color: white; font-family: sans-serif; }
+        .checkout-bar { position: fixed; bottom: 0; width: 100%; padding: 20px; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; }
+        .total-display { color: #00ff88; font-size: 3rem; font-weight: bold; }
+        #lista-ventas { margin: 20px; border-collapse: collapse; width: 90%; }
+        #lista-ventas th, #lista-ventas td { border-bottom: 1px solid #444; padding: 10px; text-align: left; }
+    </style>
+</head>
+<body>
 
-  <div class="summary-glass">
-    <div class="summary-item">
-      <span>Subtotal:</span>
-      <strong>$15.200,00</strong>
-    </div>
-    <div class="summary-item main-total">
-      <span>TOTAL:</span>
-      <span class="price">$15.200,00</span>
-    </div>
-    <button class="btn-finalize">Finalizar Venta [F2]</button>
-  </div>
-</div>
+    <h2>Nueva Venta</h2>
+    
+    <table id="lista-ventas">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Precio</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-body">
+            </tbody>
+    </table>
 
-<style>
-  .checkout-bar {
-    display: flex;
-    justify-content: space-between;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(15px);
-    padding: 25px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-  }
-  .price {
-    font-size: 2.5rem;
-    color: #00ff88; /* Un verde neón sutil */
-    font-weight: bold;
-  }
-  .btn-finalize {
-    background: linear-gradient(135deg, #007bff, #00c6ff);
-    border: none;
-    padding: 15px 30px;
-    border-radius: 12px;
-    color: white;
-    font-weight: bold;
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
-  }
-</style>
+    <div class="checkout-bar">
+        <input type="text" id="barcode-input" placeholder="Escanee producto..." autofocus 
+               style="padding: 10px; border-radius: 5px; border: none; width: 300px;">
+        
+        <div class="summary">
+            <span>TOTAL:</span>
+            <span class="total-display" id="total-venda">$0.00</span>
+            <button onclick="finalizarVenta()" style="padding: 15px 30px; background: #007bff; color: white; border: none; border-radius: 10px; cursor: pointer; margin-left: 20px;">
+                Finalizar Venta [F2]
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const { buscarProducto } = require('./database.js');
+        let total = 0;
+        const input = document.getElementById('barcode-input');
+        const tabla = document.getElementById('tabla-body');
+        const totalTxt = document.getElementById('total-venda');
+
+        // Escuchar el Enter del Lector de Barras
+        input.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const producto = await buscarProducto(input.value);
+                
+                if (producto) {
+                    agregarATabla(producto);
+                } else {
+                    alert("Producto no encontrado");
+                }
+                input.value = ''; // Limpiar para el próximo escaneo
+            }
+        });
+
+        function agregarATabla(p) {
+            const row = tabla.insertRow();
+            row.innerHTML = `<td>${p.codigo}</td><td>${p.nombre}</td><td>$${p.precio.toFixed(2)}</td>`;
+            total += p.precio;
+            totalTxt.innerText = `$${total.toFixed(2)}`;
+        }
+
+        function finalizarVenta() {
+            // Aquí llamarás a la función de AFIP más adelante
+            alert("Enviando a AFIP... Total: $" + total);
+        }
+
+        // Atajo de teclado F2 para finalizar
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'F2') finalizarVenta();
+        });
+    </script>
+</body>
+</html>
