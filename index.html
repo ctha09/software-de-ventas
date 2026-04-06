@@ -2,8 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockMaster V.24.09.24 - LA BARRICA</title>
+    <title>StockMaster - LA BARRICA</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body onload="onLoad()">
@@ -14,47 +13,34 @@
             <h2>LA BARRICA</h2>
         </div>
         <nav class="f-keys-grid">
-            <button class="nav-item"><span class="icon">📦</span><span class="text">Articulos</span> <small>[F1]</small></button>
-            <button class="nav-item"><span class="icon">🤝</span><span class="text">Proveedores</span> <small>[F2]</small></button>
-            <button class="nav-item"><span class="icon">👥</span><span class="text">Clientes</span> <small>[F3]</small></button>
-            <button class="nav-item"><span class="icon">👤</span><span class="text">Usuarios</span> <small>[F4]</small></button>
-            <button class="nav-item active"><span class="icon">🛒</span><span class="text">Ventas</span> <small>[F6]</small></button>
-            <button class="nav-item"><span class="icon">💼</span><span class="text">AFIP</span> <small>[F10]</small></button>
-            <button class="nav-item exit"><span class="icon">🚪</span><span class="text">Salir</span> <small>[F12]</small></button>
+            <button class="nav-item">Articulos [F1]</button>
+            <button class="nav-item">Proveedores [F2]</button>
+            <button class="nav-item">Clientes [F3]</button>
+            <button class="nav-item active">Ventas [F6]</button>
+            <button class="nav-item">AFIP [F10]</button>
+            <button class="nav-item exit">Salir [F12]</button>
         </nav>
     </header>
 
     <main class="content-wrapper">
-        
         <section class="dark-panel sale-header-info">
             <div class="panel-label">DATOS DE LA VENTA</div>
             <div class="grid-form-layout">
                 <div class="input-block">
                     <label>Cliente</label>
-                    <div class="input-with-action">
-                        <input type="text" value="CONSUMIDOR FINAL" readonly>
-                        <button class="action-icon">🔍</button>
-                    </div>
+                    <input type="text" value="CONSUMIDOR FINAL" readonly>
                 </div>
                 <div class="input-block">
                     <label>Tipo de Comprobante</label>
-                    <select>
-                        <option>FACTURA B</option>
-                        <option>FACTURA C</option>
-                        <option>REMITO X</option>
-                    </select>
+                    <select><option>FACTURA B</option></select>
                 </div>
-                <div class="input-block info-only">
+                <div class="input-block">
                     <label>N° Venta</label>
-                    <span id="txt-nventa">9243</span>
+                    <span class="val-destacado">9243</span>
                 </div>
                 <div class="input-block">
                     <label>Tipo de Pago</label>
-                    <select>
-                        <option>CONTADO</option>
-                        <option>TARJETA</option>
-                        <option>C. CORRIENTE</option>
-                    </select>
+                    <select><option>CONTADO</option></select>
                 </div>
                 <div class="input-block">
                     <label>Fecha</label>
@@ -63,7 +49,7 @@
             </div>
         </section>
 
-        <section class="dark-panel products-grid-container">
+        <section class="dark-panel products-table-container">
             <table id="ventas-grid">
                 <thead>
                     <tr>
@@ -78,44 +64,29 @@
                     </tbody>
             </table>
         </section>
-
     </main>
 
     <footer class="tech-footer">
-        
-        <div class="left-action-zone">
-            <div class="neon-input-wrapper">
-                <input type="text" id="barcode-input" placeholder="Escanee producto... [Codigo o Nombre]" autofocus>
-            </div>
-            
+        <div class="scanner-section">
+            <input type="text" id="barcode-input" placeholder="Escanee producto..." autofocus>
             <div class="action-buttons-row">
-                <button class="btn-f-action save">Guardar [F2]</button>
-                <button class="btn-f-action cancel">Cancelar [F5]</button>
-                <button class="btn-f-action print">Imprimir [F8]</button>
-                <button class="btn-f-action other">Cambiar Precio [F9]</button>
+                <button class="btn-f">Guardar [F2]</button>
+                <button class="btn-f cancel">Cancelar [F5]</button>
+                <button class="btn-f">Imprimir [F8]</button>
             </div>
         </div>
 
-        <div class="totals-zone">
-            <div class="totals-breakdown">
-                <div class="total-item">SubTotal $0.00 <span class="val">$0.00</span></div>
-                <div class="total-item">Discount% 0 <span class="val">$0.00</span></div>
-                <div class="total-item">Surcharge% 0 <span class="val">$0.00</span></div>
-                <div class="total-item">VAT 10.5% $0.00 <span class="val">$0.00</span></div>
-                <div class="total-item">VAT 21.0% $0.00 <span class="val" id="txt-iva21">$0.00</span></div>
+        <div class="totals-section">
+            <div class="breakdown">
+                <p>SubTotal: <span>$0.00</span></p>
+                <p>IVA 21%: <span id="txt-iva21">$0.00</span></p>
             </div>
-            <div class="massive-total-panel">
-                <span class="label">TOTAL:</span>
-                <span class="value" id="txt-total">$0.00</span>
+            <div class="massive-total">
+                <small>TOTAL</small>
+                <span id="txt-total">$0.00</span>
             </div>
         </div>
-
     </footer>
-
-    <div class="status-bar">
-        <span>VP Sistemas & Servicios</span>
-        <span>4 de Abril de 2026</span>
-    </div>
 
     <script src="renderer.js"></script>
 </body>
