@@ -1,317 +1,114 @@
-/* --- 1. VARIABLES DE DISEÑO PROFESIONAL --- */
 :root {
-    /* Paleta Oscura */
-    --bg-main: #0a0c10;
-    --bg-nav: #12161c;
-    --bg-panel: rgba(20, 26, 35, 0.85);
-    
-    /* Colores de Acento y Neón */
-    --color-accent: #007bff; /* Azul profesional */
-    --color-neon-blue: #00d4ff; /* Azul neón para el input */
-    --color-neon-green: #00ff88; /* Verde neón para el Total */
-    --color-exit: #ff4d4d;
-    
-    /* Texto y Bordes */
-    --text-main: #ffffff;
+    --bg-dark: #0a0c10;
+    --panel-bg: #12161c;
+    --accent-blue: #007bff;
+    --neon-green: #00ff88;
     --text-muted: #8b949e;
-    --border-glass: rgba(255, 255, 255, 0.08);
-    
-    /* Efectos */
-    --border-radius-main: 14px;
-    --transition-fast: 0.2s ease;
+    --border: rgba(255,255,255,0.1);
 }
 
-/* --- 2. ESTILOS BASE Y LAYOUT --- */
 body {
-    background-color: var(--bg-main);
-    color: var(--text-main);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
     margin: 0;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Evita scrolls innecesarios en el body */
 }
 
-h1, h2 { margin: 0; font-weight: normal; }
-
-/* --- 3. BARRA DE NAVEGACIÓN SUPERIOR (F-KEYS) --- */
+/* Header Distribuido */
 .main-nav-container {
-    background-color: var(--bg-nav);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 40px;
-    border-bottom: 1px solid var(--border-glass);
+    padding: 10px 30px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
 }
 
-.software-titles h1 { font-size: 1.6rem; color: var(--text-main); }
-.software-titles h2 { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-
-.f-keys-grid { display: flex; gap: 12px; }
-
+.f-keys-grid { display: flex; gap: 10px; }
 .nav-item {
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-glass);
+    background: #1c2128;
+    border: 1px solid var(--border);
     color: var(--text-muted);
-    padding: 12px 18px;
-    border-radius: 10px;
+    padding: 8px 15px;
+    border-radius: 6px;
     cursor: pointer;
-    text-align: center;
-    transition: all var(--transition-fast);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 90px;
 }
+.nav-item.active { border-color: var(--accent-blue); color: white; }
 
-.nav-item .icon { font-size: 1.2rem; margin-bottom: 5px; }
-.nav-item .text { font-size: 0.85rem; }
-.nav-item small { color: #555; font-size: 0.7rem; margin-top: 3px; }
-
-.nav-item:hover {
-    background-color: rgba(0, 123, 255, 0.1);
-    border-color: var(--color-accent);
-    color: var(--text-main);
-    transform: translateY(-2px);
-}
-
-.nav-item.active {
-    background-color: rgba(0, 123, 255, 0.15);
-    border-color: var(--color-accent);
-    color: var(--text-main);
-    box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
-}
-
-.nav-item.active::after {
-    content: '';
-    display: block;
-    height: 3px;
-    background-color: var(--color-accent);
-    width: 60%;
-    border-radius: 10px;
-    margin-top: 5px;
-}
-
-.nav-item.exit:hover {
-    background-color: rgba(255, 77, 77, 0.1);
-    border-color: var(--color-exit);
-    color: var(--color-exit);
-}
-
-/* --- 4. CONTENIDO PRINCIPAL --- */
-.content-wrapper {
-    flex: 1;
-    padding: 30px 40px;
-    overflow-y: auto; /* Scroll solo en el contenido si es necesario */
-}
+/* Contenido Principal con espacio */
+.content-wrapper { flex: 1; padding: 20px 30px; }
 
 .dark-panel {
-    background-color: var(--bg-panel);
-    backdrop-filter: blur(12px);
-    border-radius: var(--border-radius-main);
-    border: 1px solid var(--border-glass);
-    margin-bottom: 25px;
-    position: relative;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
 }
 
-.panel-label {
-    position: absolute;
-    top: -10px;
-    left: 20px;
-    background-color: var(--bg-main);
-    padding: 0 10px;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* Grid de Formulario */
+/* Formulario en Grid para que no se amontone */
 .grid-form-layout {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
-    padding: 30px;
-}
-
-.input-block label {
-    display: block;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    margin-bottom: 8px;
-}
-
-.input-block input, .input-block select {
-    width: 100%;
-    padding: 12px 15px;
-    background-color: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: var(--text-main);
-    border-radius: 8px;
-    font-size: 0.95rem;
-    box-sizing: border-box;
-}
-
-.input-with-action { position: relative; }
-.input-with-action input { padding-right: 40px; }
-.action-icon {
-    position: absolute;
-    right: 5px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--color-accent);
-    cursor: pointer;
-    font-size: 1.1rem;
-}
-
-.input-block.info-only span {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--text-main);
-}
-
-/* Grilla de Productos */
-.products-grid-container {
-    height: 40vh;
-    overflow-y: auto;
-}
-
-#ventas-grid {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-#ventas-grid th, #ventas-grid td {
-    text-align: left;
-    padding: 18px 25px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-#ventas-grid th {
-    color: var(--color-accent);
-    font-weight: normal;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 1px;
-}
-
-/* --- 5. FOOTER TECNOLÓGICO Y PROFESIONAL --- */
-.tech-footer {
-    background-color: rgba(18, 22, 28, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border-glass);
-    padding: 30px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.left-action-zone {
-    display: flex;
-    flex-direction: column;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
 }
 
-/* Input Neón del Lector */
-.neon-input-wrapper {
-    position: relative;
+.input-block label { display: block; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 5px; }
+.input-block input, .input-block select {
+    width: 100%;
+    background: #000;
+    border: 1px solid var(--border);
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+/* Tabla que ocupa el ancho */
+table { width: 100%; border-collapse: collapse; }
+th { color: var(--accent-blue); text-align: left; padding: 10px; border-bottom: 1px solid var(--border); }
+td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+/* Footer con Lector a la Izquierda y Total a la Derecha */
+.tech-footer {
+    display: flex;
+    justify-content: space-between; /* Esto separa el lector del total */
+    align-items: center;
+    padding: 20px 40px;
+    background: #0d1117;
+    border-top: 2px solid var(--accent-blue);
 }
 
 #barcode-input {
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 2px solid var(--color-neon-blue);
-    color: var(--color-neon-green);
-    padding: 18px 30px;
-    font-size: 1.2rem;
-    border-radius: 35px;
-    width: 450px;
-    outline: none;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-    transition: box-shadow 0.3s ease;
-}
-
-#barcode-input:focus {
-    box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
-}
-
-/* Botones de Acción de Footer */
-.action-buttons-row {
-    display: flex;
-    gap: 12px;
-}
-
-.btn-f-action {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-glass);
-    color: var(--text-muted);
+    background: #000;
+    border: 2px solid var(--accent-blue);
+    color: var(--neon-green);
     padding: 12px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background var(--transition-fast);
-}
-
-.btn-f-action:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-main);
-}
-
-/* Zona de Totales */
-.totals-zone {
-    display: flex;
-    align-items: flex-end;
-    gap: 40px;
-}
-
-.totals-breakdown {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    text-align: right;
-}
-
-.total-item {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-}
-
-.total-item .val {
-    color: var(--text-main);
-    font-weight: bold;
-}
-
-/* Gran Total Neón */
-.massive-total-panel {
-    text-align: right;
-}
-
-.massive-total-panel .label {
-    display: block;
-    color: var(--text-muted);
     font-size: 1.1rem;
-    margin-bottom: 5px;
+    border-radius: 25px;
+    width: 350px;
+    outline: none;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
 }
 
-.massive-total-panel .value {
+.totals-section { display: flex; align-items: center; gap: 40px; text-align: right; }
+.massive-total { line-height: 1; }
+.massive-total span {
     font-size: 4rem;
-    color: var(--color-neon-green);
+    color: var(--neon-green);
     font-weight: bold;
-    text-shadow: 0 0 25px rgba(0, 255, 136, 0.5);
-    line-height: 1;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
 }
 
-/* Barra de Estado */
-.status-bar {
-    background-color: #000;
-    padding: 8px 40px;
-    font-size: 0.8rem;
-    color: #555;
-    display: flex;
-    justify-content: space-between;
+.btn-f {
+    background: var(--accent-blue);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    margin-top: 10px;
+    cursor: pointer;
 }
+.btn-f.cancel { background: #cf3a3a; }
