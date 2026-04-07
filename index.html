@@ -16,12 +16,12 @@
 
     <section class="toolbar">
         <button class="tool-btn" onclick="abrirArticulos()"><i class="fas fa-box icon-blue"></i><span>Artículos [F1]</span></button>
-        <button class="tool-btn" onclick="abrirProveedores()"><i class="fas fa-truck icon-red"></i><span>Proveedores [F2]</span></button>
-        <button class="tool-btn" onclick="abrirClientes()"><i class="fas fa-users icon-green"></i><span>Clientes [F3]</span></button>
-        <button class="tool-btn" onclick="abrirUsuarios()"><i class="fas fa-user-shield icon-purple"></i><span>Usuarios [F4]</span></button>
-        <button class="tool-btn" onclick="abrirCompras()"><i class="fas fa-shopping-cart icon-dark-green"></i><span>Compras [F5]</span></button>
+        <button class="tool-btn"><i class="fas fa-truck icon-red"></i><span>Proveedores [F2]</span></button>
+        <button class="tool-btn"><i class="fas fa-users icon-green"></i><span>Clientes [F3]</span></button>
+        <button class="tool-btn"><i class="fas fa-user-shield icon-purple"></i><span>Usuarios [F4]</span></button>
+        <button class="tool-btn"><i class="fas fa-shopping-cart icon-dark-green"></i><span>Compras [F5]</span></button>
         <button class="tool-btn" onclick="abrirVentas()"><i class="fas fa-cash-register icon-light-blue"></i><span>Ventas [F6]</span></button>
-        <button class="tool-btn exit" onclick="window.close()"><i class="fas fa-power-off icon-red"></i><span>Salir [F12]</span></button>
+        <button class="tool-btn exit" onclick="alert('Cerrando Sesión...')"><i class="fas fa-power-off icon-red"></i><span>Salir [F12]</span></button>
     </section>
 
     <main class="desktop-area">
@@ -33,7 +33,10 @@
 
     <div id="modal-ventas" class="modal-overlay">
         <div class="modal-window modal-lg">
-            <div class="modal-header"><span><i class="fas fa-cash-register"></i> Ventas</span><button onclick="cerrarVentas()" class="close-btn">×</button></div>
+            <div class="modal-header">
+                <span><i class="fas fa-cash-register"></i> Ventas</span>
+                <button onclick="cerrarVentas()" class="close-btn">×</button>
+            </div>
             <div class="modal-body">
                 <fieldset class="form-container">
                     <legend>Datos de la Venta</legend>
@@ -41,7 +44,7 @@
                         <div class="form-group span-4"><label>Cliente</label>
                             <div class="input-with-btn"><input type="text" value="CONSUMIDOR FINAL"><button class="small-action-btn"><i class="fas fa-search"></i></button></div>
                         </div>
-                        <div class="form-group span-3"><label>Comprobante</label><select><option>REMITO X</option></select></div>
+                        <div class="form-group span-3"><label>Comprobante</label><select><option>REMITO X</option><option>FACTURA C</option></select></div>
                         <div class="form-group span-2"><label>Nº Venta</label><input type="text" value="9243" readonly></div>
                         <div class="form-group span-3"><label>Fecha</label><input type="text" id="fecha-venta" readonly></div>
                     </div>
@@ -51,7 +54,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th width="15%">Código</th><th width="10%">Cant/Peso</th><th width="45%">Detalle</th>
+                                <th width="15%">Código</th><th width="12%">Cant/Peso</th><th width="43%">Detalle</th>
                                 <th width="10%">Precio</th><th width="10%">Dto</th><th width="10%">Total</th>
                             </tr>
                         </thead>
@@ -62,7 +65,8 @@
                 <div class="purchase-footer">
                     <div class="purchase-actions">
                         <button class="action-btn-large" onclick="cerrarVentas()"><i class="fas fa-times icon-red"></i> Cancelar [F5]</button>
-                        <button class="action-btn-large"><i class="fas fa-check icon-green"></i> Guardar [F2]</button>
+                        <button class="action-btn-large" onclick="alert('Venta Guardada')"><i class="fas fa-check icon-green"></i> Guardar [F2]</button>
+                        <button class="action-btn-large" onclick="abrirBuscadorManual()"><i class="fas fa-plus icon-blue"></i> Agregar [F4]</button>
                     </div>
                     <div class="barcode-section">
                         <label>Artículo (Código de Barras)</label>
@@ -79,17 +83,17 @@
         </div>
     </div>
 
-    <div id="modal-articulos" class="modal-overlay">
-        <div class="modal-window">
-            <div class="modal-header"><span><i class="fas fa-edit"></i> Artículos</span><button onclick="cerrarArticulos()" class="close-btn">×</button></div>
+    <div id="modal-buscador" class="modal-overlay">
+        <div class="modal-window" style="width: 600px;">
+            <div class="modal-header"><span>Seleccionar Artículo</span><button onclick="cerrarBuscadorManual()" class="close-btn">×</button></div>
             <div class="modal-body">
-                <div class="table-container">
+                <div class="table-container" style="height: 200px;">
                     <table>
-                        <thead><tr><th>Código</th><th>Detalle</th><th>Stock</th><th>Precio</th></tr></thead>
-                        <tbody id="lista-productos-general"></tbody>
+                        <thead><tr><th>Código</th><th>Detalle</th><th>Precio</th></tr></thead>
+                        <tbody id="lista-busqueda-manual"></tbody>
                     </table>
                 </div>
-                <button class="exit-inner-btn" onclick="cerrarArticulos()">Salir</button>
+                <button class="exit-inner-btn" onclick="cerrarBuscadorManual()">Cerrar</button>
             </div>
         </div>
     </div>
