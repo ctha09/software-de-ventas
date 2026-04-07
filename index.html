@@ -2,92 +2,102 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>StockMaster - LA BARRICA</title>
+    <title>LA BARRICA - Software de Gestión Comercial</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body onload="onLoad()">
+<body>
 
-    <header class="main-nav-container">
-        <div class="software-titles">
-            <h1>StockMaster</h1>
-            <h2>LA BARRICA</h2>
+    <nav class="text-menu">
+        <ul>
+            <li>Archivo</li><li>Consultas</li><li>Gestión</li><li>Cuentas Corrientes</li><li>Búsqueda</li><li>Seguridad</li><li>Salir</li>
+        </ul>
+    </nav>
+
+    <section class="toolbar">
+        <button class="tool-btn" onclick="abrirArticulos()"><i class="fas fa-box icon-blue"></i><span>Artículos [F1]</span></button>
+        <button class="tool-btn" onclick="abrirProveedores()"><i class="fas fa-truck icon-red"></i><span>Proveedores [F2]</span></button>
+        <button class="tool-btn" onclick="abrirClientes()"><i class="fas fa-users icon-green"></i><span>Clientes [F3]</span></button>
+        <button class="tool-btn" onclick="abrirUsuarios()"><i class="fas fa-user-shield icon-purple"></i><span>Usuarios [F4]</span></button>
+        <button class="tool-btn" onclick="abrirCompras()"><i class="fas fa-shopping-cart icon-dark-green"></i><span>Compras [F5]</span></button>
+        <button class="tool-btn" onclick="abrirVentas()"><i class="fas fa-cash-register icon-light-blue"></i><span>Ventas [F6]</span></button>
+        <button class="tool-btn exit" onclick="window.close()"><i class="fas fa-power-off icon-red"></i><span>Salir [F12]</span></button>
+    </section>
+
+    <main class="desktop-area">
+        <div class="main-logo">
+            <h1 class="brand-text">Stock<span>Facil</span></h1>
+            <p>VP Sistemas & Servicios</p>
         </div>
-        <nav class="f-keys-grid">
-            <button class="nav-item">Articulos [F1]</button>
-            <button class="nav-item">Proveedores [F2]</button>
-            <button class="nav-item">Clientes [F3]</button>
-            <button class="nav-item active">Ventas [F6]</button>
-            <button class="nav-item">AFIP [F10]</button>
-            <button class="nav-item exit">Salir [F12]</button>
-        </nav>
-    </header>
-
-    <main class="content-wrapper">
-        <section class="dark-panel sale-header-info">
-            <div class="panel-label">DATOS DE LA VENTA</div>
-            <div class="grid-form-layout">
-                <div class="input-block">
-                    <label>Cliente</label>
-                    <input type="text" value="CONSUMIDOR FINAL" readonly>
-                </div>
-                <div class="input-block">
-                    <label>Tipo de Comprobante</label>
-                    <select><option>FACTURA B</option></select>
-                </div>
-                <div class="input-block">
-                    <label>N° Venta</label>
-                    <span class="val-destacado">9243</span>
-                </div>
-                <div class="input-block">
-                    <label>Tipo de Pago</label>
-                    <select><option>CONTADO</option></select>
-                </div>
-                <div class="input-block">
-                    <label>Fecha</label>
-                    <input type="text" value="Sabado, 4 de Abril de 2026" readonly>
-                </div>
-            </div>
-        </section>
-
-        <section class="dark-panel products-table-container">
-            <table id="ventas-grid">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Cantidad</th>
-                        <th>Detalle</th>
-                        <th>Precio U.</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody id="grid-body">
-                    </tbody>
-            </table>
-        </section>
     </main>
 
-    <footer class="tech-footer">
-        <div class="scanner-section">
-            <input type="text" id="barcode-input" placeholder="Escanee producto..." autofocus>
-            <div class="action-buttons-row">
-                <button class="btn-f">Guardar [F2]</button>
-                <button class="btn-f cancel">Cancelar [F5]</button>
-                <button class="btn-f">Imprimir [F8]</button>
-            </div>
-        </div>
+    <div id="modal-ventas" class="modal-overlay">
+        <div class="modal-window modal-lg">
+            <div class="modal-header"><span><i class="fas fa-cash-register"></i> Ventas</span><button onclick="cerrarVentas()" class="close-btn">×</button></div>
+            <div class="modal-body">
+                <fieldset class="form-container">
+                    <legend>Datos de la Venta</legend>
+                    <div class="form-grid">
+                        <div class="form-group span-4"><label>Cliente</label>
+                            <div class="input-with-btn"><input type="text" value="CONSUMIDOR FINAL"><button class="small-action-btn"><i class="fas fa-search"></i></button></div>
+                        </div>
+                        <div class="form-group span-3"><label>Comprobante</label><select><option>REMITO X</option></select></div>
+                        <div class="form-group span-2"><label>Nº Venta</label><input type="text" value="9243" readonly></div>
+                        <div class="form-group span-3"><label>Fecha</label><input type="text" id="fecha-venta" readonly></div>
+                    </div>
+                </fieldset>
 
-        <div class="totals-section">
-            <div class="breakdown">
-                <p>SubTotal: <span>$0.00</span></p>
-                <p>IVA 21%: <span id="txt-iva21">$0.00</span></p>
-            </div>
-            <div class="massive-total">
-                <small>TOTAL</small>
-                <span id="txt-total">$0.00</span>
+                <div class="table-container large-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th width="15%">Código</th><th width="10%">Cant/Peso</th><th width="45%">Detalle</th>
+                                <th width="10%">Precio</th><th width="10%">Dto</th><th width="10%">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-ventas-items"></tbody>
+                    </table>
+                </div>
+
+                <div class="purchase-footer">
+                    <div class="purchase-actions">
+                        <button class="action-btn-large" onclick="cerrarVentas()"><i class="fas fa-times icon-red"></i> Cancelar [F5]</button>
+                        <button class="action-btn-large"><i class="fas fa-check icon-green"></i> Guardar [F2]</button>
+                    </div>
+                    <div class="barcode-section">
+                        <label>Artículo (Código de Barras)</label>
+                        <input type="text" id="lector-barras" class="barcode-input" placeholder="Escanee producto..." onkeydown="manejarLector(event)">
+                    </div>
+                    <div class="totals-panel">
+                        <div class="total-big-black">
+                            <span class="total-label">Total</span>
+                            <span class="total-amount" id="total-final">$0.00</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+
+    <div id="modal-articulos" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-header"><span><i class="fas fa-edit"></i> Artículos</span><button onclick="cerrarArticulos()" class="close-btn">×</button></div>
+            <div class="modal-body">
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Código</th><th>Detalle</th><th>Stock</th><th>Precio</th></tr></thead>
+                        <tbody id="lista-productos-general"></tbody>
+                    </table>
+                </div>
+                <button class="exit-inner-btn" onclick="cerrarArticulos()">Salir</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="status-bar">
+        <div>www.vpsistemas.com</div><div>VP Sistemas & Servicios</div><div id="clock">00:00:00</div>
     </footer>
 
-    <script src="renderer.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
