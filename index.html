@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LA BARRICA - Gestión Integral</title>
+    <title>LA BARRICA - Sistema de Gestión</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -63,16 +63,15 @@
         .panel-pago { background: var(--sidebar-bg); padding: 25px; border-radius: 15px; border: 1px solid var(--glass); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .total-price { font-size: 3rem; font-weight: 800; color: var(--accent); margin: 5px 0 20px 0; }
         
-        select { background: #0f172a; color: white; border: 1px solid var(--glass); padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; }
+        select, .form-input { background: #0f172a; color: white; border: 1px solid var(--glass); padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 15px; box-sizing: border-box; }
 
         .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-confirm { background: var(--success); color: white; }
-        .btn-clear { background: rgba(239, 68, 68, 0.1); color: var(--danger); margin-top: 10px; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-clear { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
 
         /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-window { background: var(--sidebar-bg); padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; border: 1px solid var(--glass); }
-        .form-input { background: #0f172a; border: 1px solid var(--glass); padding: 12px; border-radius: 8px; color: white; width: 100%; box-sizing: border-box; margin-bottom: 15px; }
         
         .btn-delete-item { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
         .btn-edit-item { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.1rem; margin-right: 15px; }
@@ -93,12 +92,11 @@
 
     <main class="main-content">
         
-        <!-- SECCION VENTAS -->
         <div id="sec-ventas" class="section active">
-            <h1>Nueva Venta</h1>
+            <h1>Caja de Ventas</h1>
             <div class="caja-grid">
                 <div>
-                    <input type="text" id="lector-barras" class="input-bar" placeholder="Escanear producto..." onkeydown="manejarLector(event)" autofocus>
+                    <input type="text" id="lector-barras" class="input-bar" placeholder="Escanear o ingresar código..." onkeydown="manejarLector(event)" autofocus>
                     <table class="v-table">
                         <thead>
                             <tr><th>Producto</th><th>Precio</th><th>Cant/Peso</th><th>Subtotal</th><th></th></tr>
@@ -112,21 +110,20 @@
                         <option value="Factura C">Factura C</option>
                         <option value="Remito X">Remito X</option>
                     </select>
-                    <label>TOTAL</label>
+                    <label>TOTAL GENERAL</label>
                     <div class="total-price" id="total-final">$ 0.00</div>
                     <button class="btn btn-confirm" onclick="guardarVentaFirebase()"><i class="fas fa-check"></i> FINALIZAR [F2]</button>
-                    <button class="btn btn-clear" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash"></i> VACIAR</button>
+                    <button class="btn btn-clear" style="margin-top:10px" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash"></i> VACIAR</button>
                 </aside>
             </div>
         </div>
 
-        <!-- SECCION ARTICULOS -->
         <div id="sec-articulos" class="section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h1>Inventario</h1>
-                <button class="btn btn-confirm" style="width:auto; padding:10px 20px;" onclick="abrirModalProducto()"><i class="fas fa-plus"></i> NUEVO</button>
+                <button class="btn btn-confirm" style="width:auto; padding:10px 20px;" onclick="abrirModalProducto()"><i class="fas fa-plus"></i> NUEVO ARTÍCULO</button>
             </div>
-            <input type="text" class="form-input" placeholder="🔍 Buscar..." oninput="filtrarArticulos(this.value)" style="margin-top:20px;">
+            <input type="text" class="form-input" placeholder="🔍 Buscar producto..." oninput="filtrarArticulos(this.value)" style="margin-top:20px;">
             <table class="v-table">
                 <thead>
                     <tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr>
@@ -135,44 +132,52 @@
             </table>
         </div>
 
-        <!-- OTRAS SECCIONES (PENDIENTES) -->
-        <div id="sec-usuarios" class="section"><h1>Usuarios</h1></div>
-        <div id="sec-compras" class="section"><h1>Compras</h1></div>
-        <div id="sec-caja" class="section"><h1>Caja</h1></div>
-        <div id="sec-estadisticas" class="section"><h1>Estadísticas</h1></div>
-        <div id="sec-contabilidad" class="section"><h1>Contabilidad</h1></div>
+        <div id="modal-cobro" class="modal-overlay">
+            <div class="modal-window" style="max-width: 400px; border-top: 5px solid var(--success);">
+                <h3>Confirmar Cobro</h3>
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <span style="font-size: 0.8rem; opacity: 0.7;">TOTAL A COBRAR</span>
+                    <div id="cobro-total-display" style="font-size: 2.5rem; font-weight: 800;">$ 0.00</div>
+                </div>
+                <label>Efectivo Recibido</label>
+                <input type="number" id="pago-recibido" class="form-input" style="font-size: 2rem; height: 60px; color: var(--success);" oninput="calcularVuelto()">
+                <div style="padding: 15px; border-radius: 10px; background: rgba(56,189,248,0.1); margin-bottom: 20px;">
+                    <span style="font-size: 0.8rem; color: var(--accent);">VUELTO</span>
+                    <div id="cobro-vuelto-display" style="font-size: 2.5rem; font-weight: 800; color: var(--accent);">$ 0.00</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn btn-clear" onclick="cerrarModalCobro()">CANCELAR</button>
+                    <button class="btn btn-confirm" onclick="finalizarYRegistrarVenta()">COBRAR</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-producto" class="modal-overlay">
+            <div class="modal-window">
+                <h3>Nuevo Artículo</h3>
+                <input type="text" id="nuevo-cod" class="form-input" placeholder="Código">
+                <input type="text" id="nuevo-det" class="form-input" placeholder="Descripción">
+                <input type="number" id="nuevo-pr" class="form-input" placeholder="Precio ($)">
+                <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock">
+                <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
+                <button class="btn btn-clear" style="margin-top:10px" onclick="cerrarModalProducto()">CANCELAR</button>
+            </div>
+        </div>
+
+        <div id="modal-editar" class="modal-overlay">
+            <div class="modal-window">
+                <h3>Editar Artículo</h3>
+                <input type="hidden" id="edit-id">
+                <label>Descripción</label><input type="text" id="edit-det" class="form-input">
+                <label>Precio ($)</label><input type="number" id="edit-pr" class="form-input">
+                <label>Stock</label><input type="number" id="edit-stock" class="form-input">
+                <button class="btn btn-confirm" onclick="actualizarProductoEnFirebase()">ACTUALIZAR</button>
+                <button class="btn btn-clear" style="margin-top:10px" onclick="cerrarModalEditar()">CANCELAR</button>
+            </div>
+        </div>
+
     </main>
 
-    <!-- MODAL NUEVO PRODUCTO -->
-    <div id="modal-producto" class="modal-overlay">
-        <div class="modal-window">
-            <h3>Nuevo Artículo</h3>
-            <input type="text" id="nuevo-cod" class="form-input" placeholder="Código de Barras">
-            <input type="text" id="nuevo-det" class="form-input" placeholder="Descripción">
-            <input type="number" id="nuevo-pr" class="form-input" placeholder="Precio ($)">
-            <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock Inicial">
-            <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
-            <button class="btn btn-clear" onclick="cerrarModalProducto()">CANCELAR</button>
-        </div>
-    </div>
-
-    <!-- MODAL EDITAR PRODUCTO -->
-    <div id="modal-editar" class="modal-overlay">
-        <div class="modal-window">
-            <h3>Editar Artículo</h3>
-            <input type="hidden" id="edit-id">
-            <label>Descripción</label>
-            <input type="text" id="edit-det" class="form-input">
-            <label>Precio ($)</label>
-            <input type="number" id="edit-pr" class="form-input">
-            <label>Stock</label>
-            <input type="number" id="edit-stock" class="form-input">
-            <button class="btn btn-confirm" onclick="actualizarProductoEnFirebase()">ACTUALIZAR</button>
-            <button class="btn btn-clear" onclick="cerrarModalEditar()">CANCELAR</button>
-        </div>
-    </div>
-
-    <!-- FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -190,7 +195,6 @@
         const db = getFirestore(app);
         window.db = db;
         window.fs = { collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc };
-        console.log("🔥 Firebase Listo");
     </script>
 
     <script src="script.js"></script>
