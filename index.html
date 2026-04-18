@@ -61,27 +61,21 @@
         .input-bar { background: #000; border: 2px solid var(--accent); padding: 18px; border-radius: 10px; color: var(--accent); font-size: 1.6rem; width: 100%; box-sizing: border-box; font-family: monospace; outline: none; }
         
         .panel-pago { background: var(--sidebar-bg); padding: 25px; border-radius: 15px; border: 1px solid var(--glass); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .total-label { font-size: 0.8rem; font-weight: bold; opacity: 0.7; }
         .total-price { font-size: 3rem; font-weight: 800; color: var(--accent); margin: 5px 0 20px 0; }
         
         select { background: #0f172a; color: white; border: 1px solid var(--glass); padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; }
 
         .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-confirm { background: var(--success); color: white; }
-        .btn-confirm:hover { background: #16a34a; transform: scale(1.02); }
         .btn-clear { background: rgba(239, 68, 68, 0.1); color: var(--danger); margin-top: 10px; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .btn-clear:hover { background: var(--danger); color: white; }
-
-        .btn-delete-item { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; opacity: 0.6; transition: 0.2s; }
-        .btn-delete-item:hover { opacity: 1; transform: scale(1.2); }
 
         /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-window { background: var(--sidebar-bg); padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; border: 1px solid var(--glass); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; opacity: 0.8; }
-        .form-input { background: #0f172a; border: 1px solid var(--glass); padding: 12px; border-radius: 8px; color: white; width: 100%; box-sizing: border-box; }
+        .form-input { background: #0f172a; border: 1px solid var(--glass); padding: 12px; border-radius: 8px; color: white; width: 100%; box-sizing: border-box; margin-bottom: 15px; }
+        
+        .btn-delete-item { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
+        .btn-edit-item { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.1rem; margin-right: 15px; }
     </style>
 </head>
 <body>
@@ -101,125 +95,87 @@
         
         <!-- SECCION VENTAS -->
         <div id="sec-ventas" class="section active">
-            <header style="display: flex; justify-content: space-between; align-items: center;">
-                <h1 style="margin:0;">Punto de Venta</h1>
-                <div id="status-firebase" style="font-size: 0.8rem; color: var(--success);"><i class="fas fa-circle"></i> Sistema Online</div>
-            </header>
-
+            <h1>Nueva Venta</h1>
             <div class="caja-grid">
-                <div class="ticket-area">
+                <div>
                     <input type="text" id="lector-barras" class="input-bar" placeholder="Escanear producto..." onkeydown="manejarLector(event)" autofocus>
-                    
                     <table class="v-table">
                         <thead>
-                            <tr>
-                                <th>Descripción</th>
-                                <th>Precio</th>
-                                <th>Cant/Peso</th>
-                                <th>Subtotal</th>
-                                <th></th>
-                            </tr>
+                            <tr><th>Producto</th><th>Precio</th><th>Cant/Peso</th><th>Subtotal</th><th></th></tr>
                         </thead>
-                        <tbody id="lista-ventas-items">
-                            <!-- Items dinámicos -->
-                        </tbody>
+                        <tbody id="lista-ventas-items"></tbody>
                     </table>
                 </div>
-
                 <aside class="panel-pago">
-                    <span class="total-label">TIPO DE COMPROBANTE</span>
+                    <label>COMPROBANTE</label>
                     <select id="tipo-doc">
                         <option value="Factura C">Factura C</option>
                         <option value="Remito X">Remito X</option>
-                        <option value="Ticket Interno">Ticket Interno</option>
                     </select>
-
-                    <span class="total-label">TOTAL GENERAL</span>
+                    <label>TOTAL</label>
                     <div class="total-price" id="total-final">$ 0.00</div>
-                    
-                    <button class="btn btn-confirm" onclick="guardarVentaFirebase()">
-                        <i class="fas fa-check-double"></i> FINALIZAR VENTA [F2]
-                    </button>
-                    <button class="btn btn-clear" onclick="limpiarCarritoCompleto()">
-                        <i class="fas fa-trash-alt"></i> VACIAR CARRITO
-                    </button>
+                    <button class="btn btn-confirm" onclick="guardarVentaFirebase()"><i class="fas fa-check"></i> FINALIZAR [F2]</button>
+                    <button class="btn btn-clear" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash"></i> VACIAR</button>
                 </aside>
             </div>
         </div>
 
         <!-- SECCION ARTICULOS -->
         <div id="sec-articulos" class="section">
-            <header style="display: flex; justify-content: space-between; align-items: center;">
-                <h1>Inventario de Artículos</h1>
-                <button class="btn btn-confirm" style="width:auto; padding: 10px 20px;" onclick="abrirModalProducto()">
-                    <i class="fas fa-plus"></i> NUEVO ARTÍCULO
-                </button>
-            </header>
-
-            <div style="margin-top: 20px;">
-                <input type="text" class="form-input" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarArticulos(this.value)" style="background: var(--glass); border: 1px solid rgba(255,255,255,0.1); padding: 15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h1>Inventario</h1>
+                <button class="btn btn-confirm" style="width:auto; padding:10px 20px;" onclick="abrirModalProducto()"><i class="fas fa-plus"></i> NUEVO</button>
             </div>
-
+            <input type="text" class="form-input" placeholder="🔍 Buscar..." oninput="filtrarArticulos(this.value)" style="margin-top:20px;">
             <table class="v-table">
                 <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nombre / Descripción</th>
-                        <th>Precio</th>
-                        <th>Stock Actual</th>
-                        <th>Acciones</th>
-                    </tr>
+                    <tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="tabla-inventario-body"></tbody>
             </table>
         </div>
 
-        <!-- SECCIONES EN CONSTRUCCIÓN -->
-        <div id="sec-usuarios" class="section"><h1>Gestión de Usuarios</h1></div>
-        <div id="sec-compras" class="section"><h1>Ordenes de Compra</h1></div>
-        <div id="sec-caja" class="section"><h1>Movimientos de Caja</h1></div>
-        <div id="sec-estadisticas" class="section"><h1>Estadísticas de Venta</h1></div>
-        <div id="sec-contabilidad" class="section"><h1>Contabilidad General</h1></div>
-
+        <!-- OTRAS SECCIONES (PENDIENTES) -->
+        <div id="sec-usuarios" class="section"><h1>Usuarios</h1></div>
+        <div id="sec-compras" class="section"><h1>Compras</h1></div>
+        <div id="sec-caja" class="section"><h1>Caja</h1></div>
+        <div id="sec-estadisticas" class="section"><h1>Estadísticas</h1></div>
+        <div id="sec-contabilidad" class="section"><h1>Contabilidad</h1></div>
     </main>
 
-    <!-- MODAL AGREGAR PRODUCTO -->
+    <!-- MODAL NUEVO PRODUCTO -->
     <div id="modal-producto" class="modal-overlay">
         <div class="modal-window">
-            <div class="modal-header">
-                <h3 style="margin:0">Registrar Nuevo Producto</h3>
-                <button onclick="cerrarModalProducto()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Código de Barras</label>
-                    <input type="text" id="nuevo-cod" class="form-input" placeholder="Escanee el código...">
-                </div>
-                <div class="form-group">
-                    <label>Descripción / Nombre</label>
-                    <input type="text" id="nuevo-det" class="form-input" placeholder="Ej: Cerveza Quilmes 1L">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="form-group">
-                        <label>Precio de Venta ($)</label>
-                        <input type="number" id="nuevo-pr" class="form-input" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label>Stock Inicial</label>
-                        <input type="number" id="nuevo-stock" class="form-input" placeholder="0">
-                    </div>
-                </div>
-                <button class="btn btn-confirm" onclick="subirProductoAFirebase()" style="margin-top:10px;">
-                    <i class="fas fa-save"></i> GUARDAR EN FIREBASE
-                </button>
-            </div>
+            <h3>Nuevo Artículo</h3>
+            <input type="text" id="nuevo-cod" class="form-input" placeholder="Código de Barras">
+            <input type="text" id="nuevo-det" class="form-input" placeholder="Descripción">
+            <input type="number" id="nuevo-pr" class="form-input" placeholder="Precio ($)">
+            <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock Inicial">
+            <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
+            <button class="btn btn-clear" onclick="cerrarModalProducto()">CANCELAR</button>
         </div>
     </div>
 
-    <!-- FIREBASE CONFIG -->
+    <!-- MODAL EDITAR PRODUCTO -->
+    <div id="modal-editar" class="modal-overlay">
+        <div class="modal-window">
+            <h3>Editar Artículo</h3>
+            <input type="hidden" id="edit-id">
+            <label>Descripción</label>
+            <input type="text" id="edit-det" class="form-input">
+            <label>Precio ($)</label>
+            <input type="number" id="edit-pr" class="form-input">
+            <label>Stock</label>
+            <input type="number" id="edit-stock" class="form-input">
+            <button class="btn btn-confirm" onclick="actualizarProductoEnFirebase()">ACTUALIZAR</button>
+            <button class="btn btn-clear" onclick="cerrarModalEditar()">CANCELAR</button>
+        </div>
+    </div>
+
+    <!-- FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB0a2iMWw5O4BxyssWe5Bp0wCXou9I1YMc",
@@ -233,27 +189,18 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         window.db = db;
-        window.fs = { collection, addDoc, getDocs };
-        
-        console.log("🚀 La Barrica OS conectada.");
+        window.fs = { collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc };
+        console.log("🔥 Firebase Listo");
     </script>
 
     <script src="script.js"></script>
-
     <script>
         function verSeccion(id) {
-            // Cambiar visibilidad de secciones
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById('sec-' + id).classList.add('active');
-            
-            // Cambiar estado de la sidebar
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             event.currentTarget.classList.add('active');
-
-            // Foco automático si es ventas
-            if(id === 'ventas') {
-                setTimeout(() => document.getElementById('lector-barras').focus(), 100);
-            }
+            if(id === 'ventas') setTimeout(() => document.getElementById('lector-barras').focus(), 100);
         }
     </script>
 </body>
