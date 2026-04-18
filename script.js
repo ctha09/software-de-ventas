@@ -3,7 +3,7 @@ let DB_PRODUCTOS = [];
 let totalVentaActual = 0;
 let miGrafico = null;
 
-// --- 1. INICIALIZACIÓN Y CARGA ---
+// --- 1. INICIALIZACIÓN ---
 async function inicializar() {
     try {
         const querySnapshot = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
@@ -27,7 +27,7 @@ function manejarLector(e) {
         let codigoABuscar = input;
         let cantidad = 1;
 
-        // Soporte para balanza (Ej: 20 00123 01500 -> Código 00123, Peso 1.500kg)
+        // Soporte balanza (20 + 5 dígitos código + 5 dígitos peso)
         if (input.startsWith('20') && input.length >= 12) {
             codigoABuscar = input.substring(2, 7);
             cantidad = parseInt(input.substring(7, 12)) / 1000;
@@ -57,7 +57,6 @@ function actualizarTablaVentas() {
     let totalAcumulado = 0;
 
     carritoVentas.forEach(item => {
-        // Redondeo hacia arriba por cada línea
         const subtotal = Math.ceil(item.pr * item.cant);
         totalAcumulado += subtotal;
 
@@ -86,13 +85,13 @@ function eliminarItemCarrito(idTemp) {
 }
 
 function limpiarCarritoCompleto() {
-    if (carritoVentas.length > 0 && confirm("¿Vaciar venta?")) {
+    if (carritoVentas.length > 0 && confirm("¿Vaciar carrito?")) {
         carritoVentas = [];
         actualizarTablaVentas();
     }
 }
 
-// --- 3. COBRO E IMPRESIÓN ---
+// --- 3. COBRO, HISTORIAL Y DESCUENTO DE STOCK ---
 function abrirModalCobro() {
     if (carritoVentas.length === 0) return;
     document.getElementById('cobro-total-display').innerText = `$ ${totalVentaActual}`;
@@ -105,12 +104,67 @@ function abrirModalCobro() {
 function calcularVuelto() {
     const recibido = parseFloat(document.getElementById('pago-recibido').value) || 0;
     const vuelto = recibido - totalVentaActual;
-    const display = document.getElementById('cobro-vuelto-display');
-    display.innerText = `Vuelto: $ ${vuelto > 0 ? Math.floor(vuelto) : 0}`;
+    document.getElementById('cobro-vuelto-display').innerText = `Vuelto: $ ${vuelto > 0 ? Math.floor(vuelto) : 0}`;
 }
 
 function cerrarModalCobro() {
     document.getElementById('modal-cobro').style.display = 'none';
+}
+
+async function finalizarYRegistrarVenta(debeImprimir) {
+    if (carritoVentas.length === 0) return;
+
+    const recibido = parseFloat(document.getElementById('pago-recibido').value) || 0;
+    const metodoPago = document.getElementById('tipo-pago').value;
+    const vuelto = Math.max(0, recibido - totalVentaActual);
+
+    const ticket = {
+        fecha: new Date().toLocaleString('es-AR'),
+        tipo_comprobante: document.getElementById('tipo-doc').value,
+        metodo_pago: metodoPago,
+        items: carritoVentas,
+        total: totalVentaActual,
+        recibido: recibido,
+        vuelto: vuelto
+    };
+
+    try {
+        // 1. Guardar en Historial (Firebase)
+        await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
+
+        // 2. RESTAR STOCK AUTOMÁTICAMENTE
+        for (const item of carritoVentas) {
+            const q = window.fs.query(
+                window.fs.collection(window.db, "articulos"), 
+                window.fs.where("cod", "==", String(item.cod))
+            );
+            const querySnapshot = await window.fs.getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const docRef = window.fs.doc(window.db, "articulos", querySnapshot.docs[0].id);
+                const stockActual = querySnapshot.docs[0].data().stock || 0;
+                await window.fs.updateDoc(docRef, {
+                    stock: stockActual - item.cant
+                });
+            }
+        }
+
+        // 3. Impresión
+        if (debeImprimir) {
+            generarTicketImpresion(ticket);
+            setTimeout(() => { window.print(); }, 500);
+        }
+
+        alert("✅ Venta completada y stock actualizado");
+        carritoVentas = [];
+        actualizarTablaVentas();
+        cerrarModalCobro();
+        inicializar(); // Recargar inventario local
+
+    } catch (e) {
+        console.error(e);
+        alert("Error al procesar la venta");
+    }
 }
 
 function generarTicketImpresion(t) {
@@ -126,7 +180,6 @@ function generarTicketImpresion(t) {
         <div style="text-align:center; font-size:12px;">
             <h2 style="margin:0;">LA BARRICA</h2>
             <p style="margin:2px 0;">${t.fecha}</p>
-            <p style="margin:2px 0;">${t.tipo_comprobante}</p>
         </div>
         <p>----------------------------</p>
         <table style="width:100%; font-size:11px;">${itemsHtml}</table>
@@ -134,56 +187,19 @@ function generarTicketImpresion(t) {
         <div style="font-size:14px; font-weight:bold; display:flex; justify-content:space-between;">
             <span>TOTAL:</span> <span>$${t.total}</span>
         </div>
-        <p style="font-size:11px; margin-top:10px;">
-            PAGO: ${t.metodo_pago}<br>
-            RECIBIDO: $${t.recibido}<br>
-            VUELTO: $${t.vuelto}
-        </p>
         <div style="text-align:center; margin-top:10px; font-size:10px;">
             <p>*** GRACIAS POR SU COMPRA ***</p>
         </div>
     `;
 }
 
-async function finalizarYRegistrarVenta(debeImprimir) {
-    const recibido = parseFloat(document.getElementById('pago-recibido').value) || 0;
-    const metodoPago = document.getElementById('tipo-pago').value;
-    const vuelto = Math.max(0, recibido - totalVentaActual);
-
-    const ticket = {
-        fecha: new Date().toLocaleString('es-AR'),
-        tipo_comprobante: document.getElementById('tipo-doc').value,
-        metodo_pago: metodoPago,
-        items: carritoVentas,
-        total: totalVentaActual,
-        recibido: recibido,
-        vuelto: vuelto
-    };
-
-    if (debeImprimir) {
-        generarTicketImpresion(ticket);
-        setTimeout(() => { window.print(); }, 500); // Tiempo para que el navegador cargue el ticket
-    }
-
-    try {
-        await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
-        carritoVentas = [];
-        actualizarTablaVentas();
-        cerrarModalCobro();
-    } catch (e) {
-        alert("Error al guardar venta");
-    }
-}
-
-// --- 4. HISTORIAL Y GRÁFICOS ---
+// --- 4. HISTORIAL ---
 async function cargarHistorial() {
     const fechaSeleccionada = document.getElementById('filtro-fecha').value; 
     if (!fechaSeleccionada) return;
 
     try {
-        const q = window.fs.query(window.fs.collection(window.db, "ventas"));
-        const snapshot = await window.fs.getDocs(q);
-        
+        const snapshot = await window.fs.getDocs(window.fs.collection(window.db, "ventas"));
         let ventasDia = [];
         let totales = { "Efectivo": 0, "Tarjeta de Credito": 0, "Tarjeta de Debito": 0, "Transferencia": 0 };
 
@@ -236,7 +252,7 @@ async function subirProductoAFirebase() {
         cod: document.getElementById('nuevo-cod').value,
         det: document.getElementById('nuevo-det').value.toUpperCase(),
         pr: parseFloat(document.getElementById('nuevo-pr').value),
-        stock: parseInt(document.getElementById('nuevo-stock').value) || 0
+        stock: parseFloat(document.getElementById('nuevo-stock').value) || 0
     };
     await window.fs.addDoc(window.fs.collection(window.db, "articulos"), nuevo);
     cerrarModalProducto();
@@ -263,7 +279,7 @@ async function actualizarProductoEnFirebase() {
         await window.fs.updateDoc(docRef, {
             det: document.getElementById('edit-det').value.toUpperCase(),
             pr: parseFloat(document.getElementById('edit-pr').value),
-            stock: parseInt(document.getElementById('edit-stock').value)
+            stock: parseFloat(document.getElementById('edit-stock').value)
         });
         cerrarModalEditar();
         inicializar();
@@ -285,8 +301,8 @@ function renderizarTablaInventario(lista = DB_PRODUCTOS) {
     const tbody = document.getElementById('tabla-inventario-body');
     if (!tbody) return;
     tbody.innerHTML = '';
-    lista.forEach(p => {
-        tbody.innerHTML += `<tr><td>${p.cod}</td><td>${p.det}</td><td>$${p.pr}</td><td>${p.stock}</td><td>
+    lista.sort((a,b) => a.det.localeCompare(b.det)).forEach(p => {
+        tbody.innerHTML += `<tr><td>${p.cod}</td><td>${p.det}</td><td>$${p.pr}</td><td>${p.stock.toFixed(3)}</td><td>
             <button class="btn-confirm" style="padding:5px; width:auto;" onclick="prepararEdicion('${p.cod}')"><i class="fas fa-edit"></i></button>
             <button class="btn-clear" style="padding:5px; width:auto;" onclick="eliminarArticuloSistema('${p.cod}')"><i class="fas fa-trash"></i></button>
         </td></tr>`;
