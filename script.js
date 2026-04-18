@@ -2,7 +2,7 @@ let carritoVentas = [];
 
 const DB_ALMACENAMIENTO = [
     { cod: '00087', det: 'PELON KG', pr: 10500 },
-    { cod: '000001', det: 'PAPA KG', pr: 1600 },
+    { cod: '00001', det: 'PAPA KG', pr: 1600 },
     { cod: '7791813444381', det: '7UP 2.25L', pr: 2200 },
     { cod: '00010', det: 'PAPA NEGRA KG', pr: 800 },
     { cod: '7790000000123', det: 'GALLETITAS OREO', pr: 1500 }
