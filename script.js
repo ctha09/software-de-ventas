@@ -3,7 +3,7 @@ let DB_PRODUCTOS = [];
 let totalVentaActual = 0;
 let miGrafico = null;
 
-// --- 1. CARGA E INICIALIZACIÓN ---
+// --- 1. INICIALIZACIÓN Y CARGA ---
 async function inicializar() {
     try {
         const querySnapshot = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
@@ -57,7 +57,7 @@ function actualizarTablaVentas() {
     let totalAcumulado = 0;
 
     carritoVentas.forEach(item => {
-        // REDONDEO PARA ARRIBA EN CADA ITEM
+        // Redondeo hacia arriba por cada línea
         const subtotal = Math.ceil(item.pr * item.cant);
         totalAcumulado += subtotal;
 
@@ -68,8 +68,8 @@ function actualizarTablaVentas() {
                 <td>${item.cant.toFixed(3)}</td>
                 <td style="font-weight:bold;">$ ${subtotal}</td>
                 <td>
-                    <button class="btn-delete-item" onclick="eliminarItemCarrito(${item.id_temp})">
-                        <i class="fas fa-trash-alt"></i>
+                    <button class="btn-clear" style="padding:5px 10px; width:auto;" onclick="eliminarItemCarrito(${item.id_temp})">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
@@ -86,7 +86,7 @@ function eliminarItemCarrito(idTemp) {
 }
 
 function limpiarCarritoCompleto() {
-    if (carritoVentas.length > 0 && confirm("¿Vaciar toda la venta actual?")) {
+    if (carritoVentas.length > 0 && confirm("¿Vaciar venta?")) {
         carritoVentas = [];
         actualizarTablaVentas();
     }
@@ -97,7 +97,7 @@ function abrirModalCobro() {
     if (carritoVentas.length === 0) return;
     document.getElementById('cobro-total-display').innerText = `$ ${totalVentaActual}`;
     document.getElementById('pago-recibido').value = ''; 
-    document.getElementById('cobro-vuelto-display').innerText = `$ 0`;
+    document.getElementById('cobro-vuelto-display').innerText = `Vuelto: $ 0`;
     document.getElementById('modal-cobro').style.display = 'flex';
     setTimeout(() => document.getElementById('pago-recibido').focus(), 200);
 }
@@ -105,48 +105,41 @@ function abrirModalCobro() {
 function calcularVuelto() {
     const recibido = parseFloat(document.getElementById('pago-recibido').value) || 0;
     const vuelto = recibido - totalVentaActual;
-    const displayVuelto = document.getElementById('cobro-vuelto-display');
-    
-    if (vuelto < 0) {
-        displayVuelto.innerText = `$ 0`;
-        displayVuelto.style.color = 'var(--danger)';
-    } else {
-        displayVuelto.innerText = `$ ${Math.floor(vuelto)}`;
-        displayVuelto.style.color = 'var(--accent)';
-    }
+    const display = document.getElementById('cobro-vuelto-display');
+    display.innerText = `Vuelto: $ ${vuelto > 0 ? Math.floor(vuelto) : 0}`;
 }
 
 function cerrarModalCobro() {
     document.getElementById('modal-cobro').style.display = 'none';
 }
 
-function generarTicketImpresion(ticketData) {
+function generarTicketImpresion(t) {
     const container = document.getElementById('ticket-print');
     let itemsHtml = '';
-    ticketData.items.forEach(i => {
+    t.items.forEach(i => {
         itemsHtml += `
             <tr><td colspan="2">${i.det}</td></tr>
             <tr><td>${i.cant.toFixed(3)} x $${i.pr}</td><td style="text-align:right">$${Math.ceil(i.pr*i.cant)}</td></tr>`;
     });
 
     container.innerHTML = `
-        <div style="text-align:center;">
+        <div style="text-align:center; font-size:12px;">
             <h2 style="margin:0;">LA BARRICA</h2>
-            <p style="margin:2px 0;">${ticketData.fecha}</p>
-            <p style="margin:2px 0;">${ticketData.tipo_comprobante}</p>
+            <p style="margin:2px 0;">${t.fecha}</p>
+            <p style="margin:2px 0;">${t.tipo_comprobante}</p>
         </div>
         <p>----------------------------</p>
-        <table style="width:100%; font-size:10px;">${itemsHtml}</table>
+        <table style="width:100%; font-size:11px;">${itemsHtml}</table>
         <p>----------------------------</p>
         <div style="font-size:14px; font-weight:bold; display:flex; justify-content:space-between;">
-            <span>TOTAL:</span> <span>$${ticketData.total}</span>
+            <span>TOTAL:</span> <span>$${t.total}</span>
         </div>
-        <p style="font-size:10px; margin-top:10px;">
-            PAGO: ${ticketData.metodo_pago}<br>
-            RECIBIDO: $${ticketData.recibido}<br>
-            VUELTO: $${ticketData.vuelto}
+        <p style="font-size:11px; margin-top:10px;">
+            PAGO: ${t.metodo_pago}<br>
+            RECIBIDO: $${t.recibido}<br>
+            VUELTO: $${t.vuelto}
         </p>
-        <div style="text-align:center; margin-top:10px;">
+        <div style="text-align:center; margin-top:10px; font-size:10px;">
             <p>*** GRACIAS POR SU COMPRA ***</p>
         </div>
     `;
@@ -169,17 +162,16 @@ async function finalizarYRegistrarVenta(debeImprimir) {
 
     if (debeImprimir) {
         generarTicketImpresion(ticket);
-        window.print();
+        setTimeout(() => { window.print(); }, 500); // Tiempo para que el navegador cargue el ticket
     }
 
     try {
         await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
-        alert("✅ Venta Guardada");
         carritoVentas = [];
         actualizarTablaVentas();
         cerrarModalCobro();
     } catch (e) {
-        alert("Error al guardar en la base de datos");
+        alert("Error al guardar venta");
     }
 }
 
@@ -197,76 +189,48 @@ async function cargarHistorial() {
 
         snapshot.forEach(doc => {
             const data = doc.data();
-            const [fechaVenta] = data.fecha.split(','); 
-            const [d, m, y] = fechaVenta.trim().split('/');
-            const fechaFormateada = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+            const [f] = data.fecha.split(','); 
+            const [d, m, y] = f.trim().split('/');
+            const fFormateada = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
 
-            if (fechaFormateada === fechaSeleccionada) {
+            if (fFormateada === fechaSeleccionada) {
                 ventasDia.push(data);
-                if (totales[data.metodo_pago] !== undefined) {
-                    totales[data.metodo_pago] += data.total;
-                }
+                if (totales[data.metodo_pago] !== undefined) totales[data.metodo_pago] += data.total;
             }
         });
 
-        renderizarHistorial(ventasDia, totales);
+        document.getElementById('res-efectivo').innerText = `$ ${totales["Efectivo"]}`;
+        document.getElementById('res-credito').innerText = `$ ${totales["Tarjeta de Credito"]}`;
+        document.getElementById('res-debito').innerText = `$ ${totales["Tarjeta de Debito"]}`;
+        document.getElementById('res-transf').innerText = `$ ${totales["Transferencia"]}`;
+
+        const tbody = document.getElementById('tabla-historial-body');
+        tbody.innerHTML = '';
+        ventasDia.reverse().forEach(v => {
+            tbody.innerHTML += `<tr><td>${v.fecha.split(',')[1]}</td><td>${v.metodo_pago}</td><td>$${v.total}</td><td><button class="btn-confirm" style="padding:5px; width:auto;"><i class="fas fa-eye"></i></button></td></tr>`;
+        });
+
         actualizarGrafico(totales);
-    } catch (e) {
-        console.error("Error historial:", e);
-    }
+    } catch (e) { console.error(e); }
 }
 
-function renderizarHistorial(ventas, totales) {
-    document.getElementById('res-efectivo').innerText = `$ ${totales["Efectivo"]}`;
-    document.getElementById('res-credito').innerText = `$ ${totales["Tarjeta de Credito"]}`;
-    document.getElementById('res-debito').innerText = `$ ${totales["Tarjeta de Debito"]}`;
-    document.getElementById('res-transf').innerText = `$ ${totales["Transferencia"]}`;
-
-    const tbody = document.getElementById('tabla-historial-body');
-    tbody.innerHTML = '';
-    ventas.reverse().forEach(v => {
-        const hora = v.fecha.split(',')[1];
-        tbody.innerHTML += `
-            <tr>
-                <td>${hora}</td>
-                <td>${v.tipo_comprobante}</td>
-                <td>${v.metodo_pago}</td>
-                <td style="font-weight:800;">$ ${v.total}</td>
-                <td><button class="btn-edit-item" onclick="alert('Funcionalidad de detalle en desarrollo')"><i class="fas fa-eye"></i></button></td>
-            </tr>
-        `;
-    });
-}
-
-function actualizarGrafico(totales) {
+function actualizarGrafico(t) {
     const ctx = document.getElementById('graficoVentas').getContext('2d');
-    if (miGrafico) { miGrafico.destroy(); }
+    if (miGrafico) miGrafico.destroy();
     miGrafico = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Efectivo', 'T. Crédito', 'T. Débito', 'Transferencia'],
+            labels: ['Efectivo', 'Crédito', 'Débito', 'Transf.'],
             datasets: [{
-                label: 'Monto ($)',
-                data: [totales["Efectivo"], totales["Tarjeta de Credito"], totales["Tarjeta de Debito"], totales["Transferencia"]],
-                backgroundColor: ['#22c55e', '#38bdf8', '#a855f7', '#f59e0b'],
-                borderRadius: 5
+                data: [t["Efectivo"], t["Tarjeta de Credito"], t["Tarjeta de Debito"], t["Transferencia"]],
+                backgroundColor: ['#22c55e', '#38bdf8', '#a855f7', '#f59e0b']
             }]
         },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#fff' } },
-                x: { ticks: { color: '#fff' } }
-            }
-        }
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } } }
     });
 }
 
 // --- 5. GESTIÓN DE ARTÍCULOS ---
-function abrirModalProducto() { document.getElementById('modal-producto').style.display = 'flex'; }
-function cerrarModalProducto() { document.getElementById('modal-producto').style.display = 'none'; }
-
 async function subirProductoAFirebase() {
     const nuevo = {
         cod: document.getElementById('nuevo-cod').value,
@@ -290,8 +254,6 @@ function prepararEdicion(codigo) {
     }
 }
 
-function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
-
 async function actualizarProductoEnFirebase() {
     const codBusqueda = document.getElementById('edit-id').value;
     const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", codBusqueda));
@@ -309,7 +271,7 @@ async function actualizarProductoEnFirebase() {
 }
 
 async function eliminarArticuloSistema(codigo) {
-    if (confirm("¿Eliminar producto?")) {
+    if (confirm("¿Eliminar?")) {
         const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", codigo));
         const snapshot = await window.fs.getDocs(q);
         if (!snapshot.empty) {
@@ -324,17 +286,10 @@ function renderizarTablaInventario(lista = DB_PRODUCTOS) {
     if (!tbody) return;
     tbody.innerHTML = '';
     lista.forEach(p => {
-        tbody.innerHTML += `
-            <tr>
-                <td><code>${p.cod}</code></td>
-                <td>${p.det}</td>
-                <td>$${parseFloat(p.pr).toFixed(2)}</td>
-                <td style="color:${p.stock <= 5 ? 'red' : 'white'}">${p.stock}</td>
-                <td>
-                    <button class="btn-edit-item" onclick="prepararEdicion('${p.cod}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn-delete-item" onclick="eliminarArticuloSistema('${p.cod}')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`;
+        tbody.innerHTML += `<tr><td>${p.cod}</td><td>${p.det}</td><td>$${p.pr}</td><td>${p.stock}</td><td>
+            <button class="btn-confirm" style="padding:5px; width:auto;" onclick="prepararEdicion('${p.cod}')"><i class="fas fa-edit"></i></button>
+            <button class="btn-clear" style="padding:5px; width:auto;" onclick="eliminarArticuloSistema('${p.cod}')"><i class="fas fa-trash"></i></button>
+        </td></tr>`;
     });
 }
 
@@ -343,5 +298,9 @@ function filtrarArticulos(val) {
     renderizarTablaInventario(f);
 }
 
-// Inicio diferido para esperar a Firebase
-setTimeout(inicializar, 1500);
+function cerrarModalProducto() { document.getElementById('modal-producto').style.display = 'none'; }
+function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
+function abrirModalProducto() { document.getElementById('modal-producto').style.display = 'flex'; }
+
+// Iniciar sistema
+setTimeout(inicializar, 1000);
