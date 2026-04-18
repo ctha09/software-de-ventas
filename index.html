@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LA BARRICA - Sistema de Gestión</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -12,6 +13,8 @@
             --accent: #38bdf8;
             --danger: #ef4444;
             --success: #22c55e;
+            --warning: #f59e0b;
+            --purple: #a855f7;
             --text: #f8fafc;
             --glass: rgba(255, 255, 255, 0.05);
         }
@@ -50,19 +53,14 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* TABLAS MODERNAS */
+        /* TABLAS */
         .v-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--glass); border-radius: 12px; overflow: hidden; }
-        .v-table th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); font-size: 0.9rem; text-transform: uppercase; }
+        .v-table th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); font-size: 0.85rem; text-transform: uppercase; }
         .v-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .v-table tr:hover { background: rgba(255,255,255,0.02); }
 
-        /* CAJA DE VENTAS */
-        .caja-grid { display: grid; grid-template-columns: 1fr 350px; gap: 25px; margin-top: 20px; }
-        .input-bar { background: #000; border: 2px solid var(--accent); padding: 18px; border-radius: 10px; color: var(--accent); font-size: 1.6rem; width: 100%; box-sizing: border-box; font-family: monospace; outline: none; }
-        
-        .panel-pago { background: var(--sidebar-bg); padding: 25px; border-radius: 15px; border: 1px solid var(--glass); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .total-price { font-size: 3rem; font-weight: 800; color: var(--accent); margin: 5px 0 20px 0; }
-        
+        /* INPUTS Y BOTONES */
+        .input-bar { background: #000; border: 2px solid var(--accent); padding: 18px; border-radius: 10px; color: var(--accent); font-size: 1.6rem; width: 100%; box-sizing: border-box; font-family: monospace; outline: none; margin-bottom: 20px;}
         select, .form-input { background: #0f172a; color: white; border: 1px solid var(--glass); padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 15px; box-sizing: border-box; }
 
         .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -70,29 +68,24 @@
         .btn-print { background: var(--accent); color: white; }
         .btn-clear { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
 
+        /* GRID VENTAS */
+        .caja-grid { display: grid; grid-template-columns: 1fr 350px; gap: 25px; }
+        .panel-pago { background: var(--sidebar-bg); padding: 25px; border-radius: 15px; border: 1px solid var(--glass); height: fit-content; }
+        .total-price { font-size: 3.5rem; font-weight: 800; color: var(--accent); margin: 10px 0 20px 0; }
+
         /* MODALES */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-window { background: var(--sidebar-bg); padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; border: 1px solid var(--glass); }
-        
-        .btn-delete-item { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
-        .btn-edit-item { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.1rem; margin-right: 15px; }
+        .modal-window { background: var(--sidebar-bg); padding: 30px; border-radius: 20px; width: 100%; max-width: 450px; border: 1px solid var(--glass); }
 
-        /* ESTILO PARA IMPRESIÓN (OCULTO EN WEB) */
+        /* HISTORIAL PANELES */
+        .panel-resumen { padding: 20px; border-radius: 12px; border-left: 5px solid; display: flex; flex-direction: column; gap: 5px; }
+        
+        /* IMPRESION */
         #ticket-print { display: none; }
         @media print {
             body * { display: none !important; }
-            #ticket-print { 
-                display: block !important; 
-                width: 58mm; /* Ancho estándar ticketeadora térmica */
-                font-family: 'Courier New', monospace; 
-                color: black; 
-                padding: 10px;
-                background: white;
-            }
-            #ticket-print h2, #ticket-print p, #ticket-print table { text-align: center; font-size: 12px; }
-            #ticket-print table { width: 100%; border-top: 1px solid black; }
-            #ticket-print .items-table td { text-align: left; font-size: 10px; padding: 2px 0; }
-            #ticket-print .total-area { border-top: 1px dashed black; padding-top: 5px; font-weight: bold; font-size: 14px; }
+            #ticket-print { display: block !important; width: 58mm; font-family: monospace; color: black; padding: 10px; background: white; font-size: 10px; }
+            #ticket-print table { width: 100%; }
         }
     </style>
 </head>
@@ -104,11 +97,9 @@
         <h2>LA <span>BARRICA</span></h2>
         <div class="nav-item active" onclick="verSeccion('ventas')"><i class="fas fa-shopping-cart"></i> Ventas</div>
         <div class="nav-item" onclick="verSeccion('articulos')"><i class="fas fa-box"></i> Artículos</div>
-        <div class="nav-item"><i class="fas fa-users"></i> Usuarios</div>
-        <div class="nav-item"><i class="fas fa-truck"></i> Compras</div>
+        <div class="nav-item" onclick="verSeccion('historial')"><i class="fas fa-history"></i> Historial</div>
         <div class="nav-item"><i class="fas fa-cash-register"></i> Caja</div>
         <div class="nav-item"><i class="fas fa-chart-line"></i> Estadísticas</div>
-        <div class="nav-item"><i class="fas fa-calculator"></i> Contabilidad</div>
     </nav>
 
     <main class="main-content">
@@ -128,14 +119,14 @@
                 <aside class="panel-pago">
                     <label>COMPROBANTE</label>
                     <select id="tipo-doc">
+                        <option value="Ticket No Fiscal">Ticket No Fiscal</option>
                         <option value="Factura C">Factura C</option>
                         <option value="Remito X">Remito X</option>
-                        <option value="Ticket No Fiscal">Ticket No Fiscal</option>
                     </select>
-                    <label>TOTAL GENERAL</label>
+                    <label>TOTAL A PAGAR</label>
                     <div class="total-price" id="total-final">$ 0</div>
                     <button class="btn btn-confirm" onclick="abrirModalCobro()"><i class="fas fa-check"></i> FINALIZAR [F2]</button>
-                    <button class="btn btn-clear" style="margin-top:10px" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash"></i> VACIAR</button>
+                    <button class="btn btn-clear" style="margin-top:10px" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash"></i> VACIAR CARRITO</button>
                 </aside>
             </div>
         </div>
@@ -145,7 +136,7 @@
                 <h1>Inventario</h1>
                 <button class="btn btn-confirm" style="width:auto; padding:10px 20px;" onclick="abrirModalProducto()"><i class="fas fa-plus"></i> NUEVO ARTÍCULO</button>
             </div>
-            <input type="text" class="form-input" placeholder="🔍 Buscar producto..." oninput="filtrarArticulos(this.value)" style="margin-top:20px;">
+            <input type="text" class="form-input" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarArticulos(this.value)" style="margin-top:20px;">
             <table class="v-table">
                 <thead>
                     <tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr>
@@ -154,33 +145,68 @@
             </table>
         </div>
 
-        <div id="modal-cobro" class="modal-overlay">
-            <div class="modal-window" style="max-width: 400px; border-top: 5px solid var(--success);">
-                <h3>Confirmar Cobro</h3>
-                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                    <span style="font-size: 0.8rem; opacity: 0.7;">TOTAL A COBRAR</span>
-                    <div id="cobro-total-display" style="font-size: 2.5rem; font-weight: 800;">$ 0</div>
+        <div id="sec-historial" class="section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h1>Historial de Ventas</h1>
+                <input type="date" id="filtro-fecha" class="form-input" style="width:auto; margin:0;" onchange="cargarHistorial()">
+            </div>
+            
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:30px;">
+                <div class="panel-resumen" style="background: rgba(34, 197, 94, 0.1); border-color: var(--success);">
+                    <span style="opacity: 0.7;">EFECTIVO</span>
+                    <div id="res-efectivo" style="font-size: 1.8rem; font-weight: 800; color: var(--success);">$ 0</div>
                 </div>
+                <div class="panel-resumen" style="background: rgba(56, 189, 248, 0.1); border-color: var(--accent);">
+                    <span style="opacity: 0.7;">T. CRÉDITO</span>
+                    <div id="res-credito" style="font-size: 1.8rem; font-weight: 800; color: var(--accent);">$ 0</div>
+                </div>
+                <div class="panel-resumen" style="background: rgba(168, 85, 247, 0.1); border-color: var(--purple);">
+                    <span style="opacity: 0.7;">T. DÉBITO</span>
+                    <div id="res-debito" style="font-size: 1.8rem; font-weight: 800; color: var(--purple);">$ 0</div>
+                </div>
+                <div class="panel-resumen" style="background: rgba(245, 158, 11, 0.1); border-color: var(--warning);">
+                    <span style="opacity: 0.7;">TRANSFERENCIA</span>
+                    <div id="res-transf" style="font-size: 1.8rem; font-weight: 800; color: var(--warning);">$ 0</div>
+                </div>
+            </div>
 
+            <div style="background: var(--glass); padding: 20px; border-radius: 15px; margin-bottom: 30px;">
+                <canvas id="graficoVentas" height="80"></canvas>
+            </div>
+
+            <table class="v-table">
+                <thead><tr><th>Hora</th><th>Tipo</th><th>Método</th><th>Total</th><th>Acciones</th></tr></thead>
+                <tbody id="tabla-historial-body"></tbody>
+            </table>
+        </div>
+
+        <div id="modal-cobro" class="modal-overlay">
+            <div class="modal-window" style="border-top: 5px solid var(--success);">
+                <h2 style="margin-top:0;">Finalizar Venta</h2>
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <span style="font-size: 0.8rem; opacity: 0.7;">TOTAL NETO</span>
+                    <div id="cobro-total-display" style="font-size: 2.5rem; font-weight: 800; color:white;">$ 0</div>
+                </div>
+                
                 <label>Método de Pago</label>
                 <select id="tipo-pago">
-                    <option value="Efectivo">💵 Efectivo</option>
-                    <option value="Tarjeta de Credito">💳 Tarjeta de Crédito</option>
-                    <option value="Tarjeta de Debito">🏧 Tarjeta de Débito</option>
-                    <option value="Transferencia">📱 Transferencia</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Tarjeta de Credito">Tarjeta de Crédito</option>
+                    <option value="Tarjeta de Debito">Tarjeta de Débito</option>
+                    <option value="Transferencia">Transferencia</option>
                 </select>
 
-                <label>Efectivo Recibido</label>
-                <input type="number" id="pago-recibido" class="form-input" style="font-size: 2rem; height: 60px; color: var(--success);" oninput="calcularVuelto()">
+                <label>Paga con ($)</label>
+                <input type="number" id="pago-recibido" class="form-input" style="font-size: 1.8rem; height: 50px; color: var(--success);" oninput="calcularVuelto()">
                 
                 <div style="padding: 15px; border-radius: 10px; background: rgba(56,189,248,0.1); margin-bottom: 20px;">
-                    <span style="font-size: 0.8rem; color: var(--accent);">VUELTO</span>
-                    <div id="cobro-vuelto-display" style="font-size: 2.5rem; font-weight: 800; color: var(--accent);">$ 0</div>
+                    <span style="font-size: 0.8rem; color: var(--accent);">VUELTO PARA ENTREGAR</span>
+                    <div id="cobro-vuelto-display" style="font-size: 2.2rem; font-weight: 800; color: var(--accent);">$ 0</div>
                 </div>
 
                 <div style="display: grid; gap: 10px;">
-                    <button class="btn btn-confirm" onclick="finalizarYRegistrarVenta(false)"><i class="fas fa-save"></i> SOLO GUARDAR</button>
-                    <button class="btn btn-print" onclick="finalizarYRegistrarVenta(true)"><i class="fas fa-print"></i> IMPRIMIR TICKET</button>
+                    <button class="btn btn-confirm" onclick="finalizarYRegistrarVenta(false)">SOLO REGISTRAR</button>
+                    <button class="btn btn-print" onclick="finalizarYRegistrarVenta(true)"><i class="fas fa-print"></i> REGISTRAR E IMPRIMIR</button>
                     <button class="btn btn-clear" onclick="cerrarModalCobro()">CANCELAR</button>
                 </div>
             </div>
@@ -192,7 +218,7 @@
                 <input type="text" id="nuevo-cod" class="form-input" placeholder="Código">
                 <input type="text" id="nuevo-det" class="form-input" placeholder="Descripción">
                 <input type="number" id="nuevo-pr" class="form-input" placeholder="Precio ($)">
-                <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock">
+                <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock Inicial">
                 <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
                 <button class="btn btn-clear" style="margin-top:10px" onclick="cerrarModalProducto()">CANCELAR</button>
             </div>
@@ -237,7 +263,13 @@
             document.getElementById('sec-' + id).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             event.currentTarget.classList.add('active');
+            
             if(id === 'ventas') setTimeout(() => document.getElementById('lector-barras').focus(), 100);
+            if(id === 'historial') {
+                const hoy = new Date().toISOString().split('T')[0];
+                document.getElementById('filtro-fecha').value = hoy;
+                cargarHistorial();
+            }
         }
     </script>
 </body>
