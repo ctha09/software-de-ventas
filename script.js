@@ -1,8 +1,7 @@
 let carritoVentas = [];
 let DB_PRODUCTOS = [];
 
-// 1. CARGA INICIAL DE DATOS
-// Se ejecuta al cargar la página para tener los productos listos en memoria
+// 1. CARGA E INICIALIZACIÓN
 async function inicializar() {
     try {
         const querySnapshot = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
@@ -10,14 +9,14 @@ async function inicializar() {
         querySnapshot.forEach(doc => {
             DB_PRODUCTOS.push(doc.data());
         });
-        console.log("📦 Inventario sincronizado:", DB_PRODUCTOS.length, "productos.");
-        renderizarTablaInventario(); // Actualiza la tabla de la sección Artículos
+        console.log("✅ Datos sincronizados");
+        renderizarTablaInventario();
     } catch (error) {
-        console.error("Error al sincronizar inventario:", error);
+        console.error("Error al sincronizar:", error);
     }
 }
 
-// 2. LÓGICA DE VENTAS (Caja de Cobro)
+// 2. LÓGICA DE VENTAS (CAJA)
 function manejarLector(e) {
     if (e.key === 'Enter') {
         const input = e.target.value.trim();
@@ -26,7 +25,7 @@ function manejarLector(e) {
         let codigoABuscar = input;
         let cantidad = 1;
 
-        // Soporte para balanza (Ej: 20 00004 01510 -> Código 00004, Peso 1.510kg)
+        // Lógica para balanza (Ej: 20 + código + peso)
         if (input.startsWith('20') && input.length >= 12) {
             codigoABuscar = input.substring(2, 7);
             cantidad = parseInt(input.substring(7, 12)) / 1000;
@@ -35,9 +34,8 @@ function manejarLector(e) {
         const prod = DB_PRODUCTOS.find(p => String(p.cod) === String(codigoABuscar));
 
         if (prod) {
-            // Agregamos al carrito con un ID temporal único para poder borrarlo luego
             carritoVentas.push({
-                id_temp: Date.now() + Math.random(), 
+                id_temp: Date.now() + Math.random(),
                 cod: prod.cod,
                 det: prod.det,
                 pr: parseFloat(prod.pr),
@@ -45,9 +43,9 @@ function manejarLector(e) {
             });
             actualizarTablaVentas();
         } else {
-            alert("⚠️ El producto con código " + codigoABuscar + " no existe en el sistema.");
+            alert("Producto no encontrado: " + codigoABuscar);
         }
-        e.target.value = ''; // Limpiar el lector
+        e.target.value = '';
     }
 }
 
@@ -65,9 +63,9 @@ function actualizarTablaVentas() {
                 <td>$${item.pr.toFixed(2)}</td>
                 <td>${item.cant.toFixed(3)}</td>
                 <td>$${subtotal.toFixed(2)}</td>
-                <td style="text-align:right">
+                <td>
                     <button class="btn-delete-item" onclick="eliminarItemCarrito(${item.id_temp})">
-                        <i class="fas fa-trash-alt"></i>
+                        <i class="fas fa-times-circle"></i>
                     </button>
                 </td>
             </tr>
@@ -77,113 +75,147 @@ function actualizarTablaVentas() {
 }
 
 function eliminarItemCarrito(idTemp) {
-    carritoVentas = carritoVentas.filter(item => item.id_temp !== idTemp);
+    carritoVentas = carritoVentas.filter(i => i.id_temp !== idTemp);
     actualizarTablaVentas();
 }
 
 function limpiarCarritoCompleto() {
-    if (carritoVentas.length === 0) return;
-    if (confirm("¿Estás seguro de vaciar toda la caja?")) {
+    if (confirm("¿Vaciar toda la venta actual?")) {
         carritoVentas = [];
         actualizarTablaVentas();
     }
 }
 
 async function guardarVentaFirebase() {
-    if (carritoVentas.length === 0) {
-        alert("No hay productos cargados.");
-        return;
-    }
+    if (carritoVentas.length === 0) return;
 
     const tipoDoc = document.getElementById('tipo-doc').value;
-    const totalVenta = carritoVentas.reduce((acc, i) => acc + (i.pr * i.cant), 0);
-
     const ticket = {
         fecha: new Date().toLocaleString(),
-        tipo_comprobante: tipoDoc,
+        tipo: tipoDoc,
         items: carritoVentas,
-        total: totalVenta
+        total: carritoVentas.reduce((acc, i) => acc + (i.pr * i.cant), 0)
     };
 
     try {
         await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
-        alert("✅ Venta Guardada con éxito (" + tipoDoc + ")");
+        alert("Venta guardada como " + tipoDoc);
         carritoVentas = [];
         actualizarTablaVentas();
     } catch (e) {
-        console.error("Error al guardar venta:", e);
-        alert("Hubo un error al intentar guardar la venta.");
+        alert("Error al guardar venta");
     }
 }
 
-// 3. LÓGICA DE ARTÍCULOS (Inventario)
+// 3. GESTIÓN DE ARTÍCULOS (INVENTARIO)
 function abrirModalProducto() {
     document.getElementById('modal-producto').style.display = 'flex';
-    setTimeout(() => document.getElementById('nuevo-cod').focus(), 200);
 }
 
 function cerrarModalProducto() {
     document.getElementById('modal-producto').style.display = 'none';
-    ['nuevo-cod', 'nuevo-det', 'nuevo-pr', 'nuevo-stock'].forEach(id => document.getElementById(id).value = '');
 }
 
 async function subirProductoAFirebase() {
-    const cod = document.getElementById('nuevo-cod').value.trim();
-    const det = document.getElementById('nuevo-det').value.trim();
-    const pr = document.getElementById('nuevo-pr').value;
-    const stock = document.getElementById('nuevo-stock').value;
-
-    if (!cod || !det || !pr) {
-        alert("Faltan datos obligatorios (Código, Nombre, Precio)");
-        return;
-    }
-
-    const nuevoDoc = {
-        cod: cod,
-        det: det.toUpperCase(),
-        pr: parseFloat(pr),
-        stock: parseInt(stock) || 0
+    const nuevo = {
+        cod: document.getElementById('nuevo-cod').value,
+        det: document.getElementById('nuevo-det').value.toUpperCase(),
+        pr: parseFloat(document.getElementById('nuevo-pr').value),
+        stock: parseInt(document.getElementById('nuevo-stock').value) || 0
     };
 
     try {
-        await window.fs.addDoc(window.fs.collection(window.db, "articulos"), nuevoDoc);
-        alert("✅ Producto añadido correctamente.");
+        await window.fs.addDoc(window.fs.collection(window.db, "articulos"), nuevo);
+        alert("Producto creado");
         cerrarModalProducto();
-        inicializar(); // Recargar base de datos local
+        inicializar();
     } catch (e) {
-        alert("Error al guardar el producto en la nube.");
+        alert("Error al crear");
     }
 }
 
+// --- EDICIÓN ---
+function prepararEdicion(codigo) {
+    const p = DB_PRODUCTOS.find(item => String(item.cod) === String(codigo));
+    if (p) {
+        document.getElementById('edit-id').value = p.cod;
+        document.getElementById('edit-det').value = p.det;
+        document.getElementById('edit-pr').value = p.pr;
+        document.getElementById('edit-stock').value = p.stock;
+        document.getElementById('modal-editar').style.display = 'flex';
+    }
+}
+
+function cerrarModalEditar() {
+    document.getElementById('modal-editar').style.display = 'none';
+}
+
+async function actualizarProductoEnFirebase() {
+    const codBusqueda = document.getElementById('edit-id').value;
+    
+    try {
+        const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", codBusqueda));
+        const snapshot = await window.fs.getDocs(q);
+        
+        if (!snapshot.empty) {
+            const docRef = window.fs.doc(window.db, "articulos", snapshot.docs[0].id);
+            await window.fs.updateDoc(docRef, {
+                det: document.getElementById('edit-det').value.toUpperCase(),
+                pr: parseFloat(document.getElementById('edit-pr').value),
+                stock: parseInt(document.getElementById('edit-stock').value)
+            });
+            alert("Producto actualizado");
+            cerrarModalEditar();
+            inicializar();
+        }
+    } catch (e) {
+        alert("Error al actualizar");
+    }
+}
+
+// --- ELIMINACIÓN ---
+async function eliminarArticuloSistema(codigo) {
+    if (confirm("¿Eliminar este producto permanentemente?")) {
+        try {
+            const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", codigo));
+            const snapshot = await window.fs.getDocs(q);
+            if (!snapshot.empty) {
+                await window.fs.deleteDoc(window.fs.doc(window.db, "articulos", snapshot.docs[0].id));
+                alert("Eliminado");
+                inicializar();
+            }
+        } catch (e) {
+            alert("Error al eliminar");
+        }
+    }
+}
+
+// --- TABLAS Y FILTROS ---
 function renderizarTablaInventario(lista = DB_PRODUCTOS) {
     const tbody = document.getElementById('tabla-inventario-body');
     if (!tbody) return;
-    
     tbody.innerHTML = '';
+    
     lista.forEach(p => {
         tbody.innerHTML += `
             <tr>
-                <td><code style="color:var(--accent)">${p.cod}</code></td>
+                <td><code>${p.cod}</code></td>
                 <td>${p.det}</td>
                 <td>$${parseFloat(p.pr).toFixed(2)}</td>
-                <td style="font-weight:bold; color: ${p.stock <= 5 ? 'var(--danger)' : 'white'}">
-                    ${p.stock}
-                </td>
-                <td style="text-align:right">
-                    <button class="btn-delete-item" title="Eliminar"><i class="fas fa-trash"></i></button>
+                <td style="color: ${p.stock <= 5 ? 'var(--danger)' : 'inherit'}">${p.stock}</td>
+                <td>
+                    <button class="btn-edit-item" onclick="prepararEdicion('${p.cod}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-delete-item" onclick="eliminarArticuloSistema('${p.cod}')"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
         `;
     });
 }
 
-function filtrarArticulos(busqueda) {
-    const filtrados = DB_PRODUCTOS.filter(p => 
-        p.det.toLowerCase().includes(busqueda.toLowerCase()) || 
-        p.cod.includes(busqueda)
-    );
-    renderizarTablaInventario(filtrados);
+function filtrarArticulos(val) {
+    const f = DB_PRODUCTOS.filter(p => p.det.toLowerCase().includes(val.toLowerCase()) || p.cod.includes(val));
+    renderizarTablaInventario(f);
 }
 
-// Iniciar sincronización tras un breve delay para asegurar que Firebase cargó
+// Inicio diferido para esperar a Firebase
 setTimeout(inicializar, 1500);
