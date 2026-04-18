@@ -67,6 +67,7 @@
 
         .btn { width: 100%; padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn-confirm { background: var(--success); color: white; }
+        .btn-print { background: var(--accent); color: white; }
         .btn-clear { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
 
         /* MODALES */
@@ -75,19 +76,39 @@
         
         .btn-delete-item { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
         .btn-edit-item { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1.1rem; margin-right: 15px; }
+
+        /* ESTILO PARA IMPRESIÓN (OCULTO EN WEB) */
+        #ticket-print { display: none; }
+        @media print {
+            body * { display: none !important; }
+            #ticket-print { 
+                display: block !important; 
+                width: 58mm; /* Ancho estándar ticketeadora térmica */
+                font-family: 'Courier New', monospace; 
+                color: black; 
+                padding: 10px;
+                background: white;
+            }
+            #ticket-print h2, #ticket-print p, #ticket-print table { text-align: center; font-size: 12px; }
+            #ticket-print table { width: 100%; border-top: 1px solid black; }
+            #ticket-print .items-table td { text-align: left; font-size: 10px; padding: 2px 0; }
+            #ticket-print .total-area { border-top: 1px dashed black; padding-top: 5px; font-weight: bold; font-size: 14px; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="ticket-print"></div>
 
     <nav class="sidebar">
         <h2>LA <span>BARRICA</span></h2>
         <div class="nav-item active" onclick="verSeccion('ventas')"><i class="fas fa-shopping-cart"></i> Ventas</div>
         <div class="nav-item" onclick="verSeccion('articulos')"><i class="fas fa-box"></i> Artículos</div>
-        <div class="nav-item" onclick="verSeccion('usuarios')"><i class="fas fa-users"></i> Usuarios</div>
-        <div class="nav-item" onclick="verSeccion('compras')"><i class="fas fa-truck"></i> Compras</div>
-        <div class="nav-item" onclick="verSeccion('caja')"><i class="fas fa-cash-register"></i> Caja</div>
-        <div class="nav-item" onclick="verSeccion('estadisticas')"><i class="fas fa-chart-line"></i> Estadísticas</div>
-        <div class="nav-item" onclick="verSeccion('contabilidad')"><i class="fas fa-calculator"></i> Contabilidad</div>
+        <div class="nav-item"><i class="fas fa-users"></i> Usuarios</div>
+        <div class="nav-item"><i class="fas fa-truck"></i> Compras</div>
+        <div class="nav-item"><i class="fas fa-cash-register"></i> Caja</div>
+        <div class="nav-item"><i class="fas fa-chart-line"></i> Estadísticas</div>
+        <div class="nav-item"><i class="fas fa-calculator"></i> Contabilidad</div>
     </nav>
 
     <main class="main-content">
@@ -109,10 +130,11 @@
                     <select id="tipo-doc">
                         <option value="Factura C">Factura C</option>
                         <option value="Remito X">Remito X</option>
+                        <option value="Ticket No Fiscal">Ticket No Fiscal</option>
                     </select>
                     <label>TOTAL GENERAL</label>
-                    <div class="total-price" id="total-final">$ 0.00</div>
-                    <button class="btn btn-confirm" onclick="guardarVentaFirebase()"><i class="fas fa-check"></i> FINALIZAR [F2]</button>
+                    <div class="total-price" id="total-final">$ 0</div>
+                    <button class="btn btn-confirm" onclick="abrirModalCobro()"><i class="fas fa-check"></i> FINALIZAR [F2]</button>
                     <button class="btn btn-clear" style="margin-top:10px" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash"></i> VACIAR</button>
                 </aside>
             </div>
@@ -137,17 +159,29 @@
                 <h3>Confirmar Cobro</h3>
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
                     <span style="font-size: 0.8rem; opacity: 0.7;">TOTAL A COBRAR</span>
-                    <div id="cobro-total-display" style="font-size: 2.5rem; font-weight: 800;">$ 0.00</div>
+                    <div id="cobro-total-display" style="font-size: 2.5rem; font-weight: 800;">$ 0</div>
                 </div>
+
+                <label>Método de Pago</label>
+                <select id="tipo-pago">
+                    <option value="Efectivo">💵 Efectivo</option>
+                    <option value="Tarjeta de Credito">💳 Tarjeta de Crédito</option>
+                    <option value="Tarjeta de Debito">🏧 Tarjeta de Débito</option>
+                    <option value="Transferencia">📱 Transferencia</option>
+                </select>
+
                 <label>Efectivo Recibido</label>
                 <input type="number" id="pago-recibido" class="form-input" style="font-size: 2rem; height: 60px; color: var(--success);" oninput="calcularVuelto()">
+                
                 <div style="padding: 15px; border-radius: 10px; background: rgba(56,189,248,0.1); margin-bottom: 20px;">
                     <span style="font-size: 0.8rem; color: var(--accent);">VUELTO</span>
-                    <div id="cobro-vuelto-display" style="font-size: 2.5rem; font-weight: 800; color: var(--accent);">$ 0.00</div>
+                    <div id="cobro-vuelto-display" style="font-size: 2.5rem; font-weight: 800; color: var(--accent);">$ 0</div>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+
+                <div style="display: grid; gap: 10px;">
+                    <button class="btn btn-confirm" onclick="finalizarYRegistrarVenta(false)"><i class="fas fa-save"></i> SOLO GUARDAR</button>
+                    <button class="btn btn-print" onclick="finalizarYRegistrarVenta(true)"><i class="fas fa-print"></i> IMPRIMIR TICKET</button>
                     <button class="btn btn-clear" onclick="cerrarModalCobro()">CANCELAR</button>
-                    <button class="btn btn-confirm" onclick="finalizarYRegistrarVenta()">COBRAR</button>
                 </div>
             </div>
         </div>
@@ -196,7 +230,6 @@
         window.db = db;
         window.fs = { collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc };
     </script>
-
     <script src="script.js"></script>
     <script>
         function verSeccion(id) {
