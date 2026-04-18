@@ -3,171 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LA BARRICA - Punto de Venta</title>
+    <title>LA BARRICA - Sistema de Gestión</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --bg-dark: #0f172a;
-            --glass-bg: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --accent-blue: #38bdf8;
-            --text-light: #f8fafc;
+            --sidebar-bg: #1e293b;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --text: #f8fafc;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            height: 100vh;
+            margin: 0; display: flex; font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-dark); color: var(--text); height: 100vh;
         }
 
-        /* Toolbar Superior */
-        .toolbar {
-            background: rgba(15, 23, 42, 0.9);
-            padding: 1rem;
-            display: flex;
-            gap: 15px;
-            border-bottom: 1px solid var(--glass-border);
+        /* Sidebar Moderna */
+        .sidebar {
+            width: 240px; background: var(--sidebar-bg);
+            display: flex; flex-direction: column; padding: 20px;
+            border-right: 1px solid rgba(255,255,255,0.1);
         }
 
-        .tool-btn {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: 0.3s;
+        .sidebar h2 { color: var(--accent); font-size: 1.5rem; margin-bottom: 30px; text-align: center; }
+        
+        .nav-item {
+            padding: 12px 15px; margin-bottom: 8px; border-radius: 8px;
+            cursor: pointer; display: flex; align-items: center; gap: 12px;
+            transition: 0.3s; color: rgba(255,255,255,0.7);
         }
 
-        .tool-btn:hover { background: rgba(255,255,255,0.1); }
-        .icon-blue { color: var(--accent-blue); }
+        .nav-item:hover, .nav-item.active { background: rgba(56,189,248,0.1); color: var(--accent); }
+        .nav-item i { width: 20px; }
 
-        /* Escritorio Central */
-        .desktop-area {
-            height: calc(100vh - 120px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle, rgba(56,189,248,0.1) 0%, rgba(15,23,42,1) 70%);
-        }
+        /* Area de Contenido */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .section { display: none; }
+        .section.active { display: block; }
 
-        .brand-text { font-size: 4rem; font-weight: 800; letter-spacing: -2px; margin: 0; }
-        .brand-text span { color: var(--accent-blue); }
+        /* Tabla de Ventas mejorada */
+        .v-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: rgba(0,0,0,0.2); }
+        .v-table th { text-align: left; padding: 15px; border-bottom: 2px solid var(--accent); }
+        .v-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        /* Estilo Ventana de Ventas */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: none; justify-content: center; align-items: center;
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-        }
+        .btn-delete { color: var(--danger); cursor: pointer; background: none; border: none; font-size: 1.2rem; }
+        
+        /* Controles de Caja */
+        .caja-controles { display: grid; grid-template-columns: 1fr 300px; gap: 20px; margin-top: 20px; }
+        .input-bar { background: #000; border: 2px solid var(--accent); padding: 15px; border-radius: 8px; color: var(--accent); font-size: 1.5rem; width: 100%; box-sizing: border-box; }
+        
+        .panel-pago { background: var(--sidebar-bg); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .total-price { font-size: 2.5rem; font-weight: bold; color: var(--accent); margin: 10px 0; }
+        
+        select { background: #0f172a; color: white; border: 1px solid var(--accent); padding: 8px; border-radius: 5px; width: 100%; margin-top: 10px; }
 
-        .modal-window {
-            background: #1e293b;
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            width: 95%; max-width: 1100px;
-            padding: 20px;
-        }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: rgba(255,255,255,0.05); padding: 12px; text-align: left; color: var(--accent-blue); }
-        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-        .barcode-input {
-            width: 100%;
-            padding: 15px;
-            background: #000;
-            border: 2px solid var(--accent-blue);
-            border-radius: 8px;
-            color: var(--accent-blue);
-            font-size: 1.8rem;
-            font-family: monospace;
-            margin-top: 10px;
-        }
-
-        .total-box {
-            background: var(--accent-blue);
-            color: #000;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: right;
-            margin-top: 20px;
-        }
-
-        .total-amount { font-size: 3rem; font-weight: 900; }
+        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-confirm { background: var(--success); color: white; }
+        .btn-clear { background: var(--danger); color: white; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <header class="toolbar">
-        <button class="tool-btn" onclick="abrirVentas()">
-            <i class="fas fa-cash-register icon-blue"></i>
-            <span>Ventas [F6]</span>
-        </button>
-        <button class="tool-btn">
-            <i class="fas fa-boxes"></i>
-            <span>Stock</span>
-        </button>
-    </header>
+    <nav class="sidebar">
+        <h2>LA BARRICA</h2>
+        <div class="nav-item active" onclick="verSeccion('ventas')"><i class="fas fa-shopping-cart"></i> Ventas</div>
+        <div class="nav-item" onclick="verSeccion('articulos')"><i class="fas fa-box"></i> Artículos</div>
+        <div class="nav-item" onclick="verSeccion('usuarios')"><i class="fas fa-users"></i> Usuarios</div>
+        <div class="nav-item" onclick="verSeccion('compras')"><i class="fas fa-truck"></i> Compras</div>
+        <div class="nav-item" onclick="verSeccion('caja')"><i class="fas fa-cash-register"></i> Caja</div>
+        <div class="nav-item" onclick="verSeccion('estadisticas')"><i class="fas fa-chart-line"></i> Estadísticas</div>
+        <div class="nav-item" onclick="verSeccion('contabilidad')"><i class="fas fa-calculator"></i> Contabilidad</div>
+    </nav>
 
-    <main class="desktop-area">
-        <h1 class="brand-text">LA<span>BARRICA</span></h1>
-        <p style="opacity: 0.6;">Terminal de Gestión</p>
-    </main>
-
-    <div id="modal-ventas" class="modal-overlay">
-        <div class="modal-window">
-            <div style="display:flex; justify-content: space-between;">
-                <h2>CAJA DE COBRO</h2>
-                <button onclick="cerrarVentas()" style="background:none; border:none; color:white; font-size:2rem; cursor:pointer;">&times;</button>
-            </div>
-            
-            <div style="max-height: 400px; overflow-y: auto;">
-                <table>
+    <main class="main-content">
+        <div id="sec-ventas" class="section active">
+            <h1>Nueva Venta</h1>
+            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px;">
+                <input type="text" id="lector-barras" class="input-bar" placeholder="Escanear producto..." onkeydown="manejarLector(event)" autofocus>
+                
+                <table class="v-table">
                     <thead>
                         <tr>
-                            <th>Código</th>
-                            <th>Descripción</th>
-                            <th>Cant/Peso</th>
+                            <th>Producto</th>
                             <th>Precio</th>
+                            <th>Cant/Peso</th>
                             <th>Subtotal</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="lista-ventas-items"></tbody>
                 </table>
-            </div>
 
-            <div style="margin-top: 20px;">
-                <label>ESCANEAR PRODUCTO:</label>
-                <input type="text" id="lector-barras" class="barcode-input" onkeydown="manejarLector(event)" placeholder="Esperando lectura..." autofocus>
+                <div class="caja-controles">
+                    <div>
+                        <label>Tipo de Documento:</label>
+                        <select id="tipo-doc">
+                            <option value="Factura C">Factura C</option>
+                            <option value="Remito X">Remito X</option>
+                            <option value="Ticket No Fiscal">Ticket No Fiscal</option>
+                        </select>
+                    </div>
+                    <div class="panel-pago">
+                        <span>TOTAL A COBRAR</span>
+                        <div class="total-price" id="total-final">$ 0.00</div>
+                        <button class="btn-action btn-confirm" onclick="guardarVentaFirebase()">
+                            <i class="fas fa-check"></i> CONFIRMAR VENTA
+                        </button>
+                        <button class="btn-action btn-clear" onclick="limpiarCarritoCompleto()">
+                            <i class="fas fa-trash"></i> BORRAR TODO
+                        </button>
+                    </div>
+                </div>
             </div>
-
-            <div class="total-box">
-                <div style="font-weight: bold;">TOTAL GENERAL</div>
-                <div class="total-amount" id="total-final">$ 0.00</div>
-            </div>
-
-            <button onclick="guardarVentaFirebase()" style="width:100%; padding:15px; background:#22c55e; border:none; color:white; font-weight:bold; margin-top:10px; border-radius:8px; cursor:pointer;">
-                CONFIRMAR VENTA [F2]
-            </button>
         </div>
-    </div>
+
+        <div id="sec-articulos" class="section"><h1>Gestión de Artículos</h1><p>Próximamente...</p></div>
+        <div id="sec-usuarios" class="section"><h1>Usuarios</h1></div>
+        <div id="sec-caja" class="section"><h1>Movimientos de Caja</h1></div>
+    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Estas son tus credenciales de la captura de pantalla
         const firebaseConfig = {
             apiKey: "AIzaSyB0a2iMWw5O4BxyssWe5Bp0wCXou9I1YMc",
             authDomain: "software-b7f1a.firebaseapp.com",
@@ -177,17 +137,20 @@
             appId: "1:457724276762:web:bffb9b54ce4d96f2ab61a3"
         };
 
-        // Inicializar Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        // Exportar a global para que script.js pueda usarlos
         window.db = db;
         window.fs = { collection, addDoc, getDocs };
-
-        console.log("✅ Firebase conectado con éxito");
+        console.log("🔥 Firebase OK");
     </script>
-
     <script src="script.js"></script>
+    <script>
+        function verSeccion(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('sec-' + id).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
 </body>
 </html>
