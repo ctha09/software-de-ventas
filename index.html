@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LA BARRICA - Terminal de Ventas</title>
+    <title>LA BARRICA - Punto de Venta</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -17,17 +17,15 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-light);
             height: 100vh;
-            overflow: hidden;
         }
 
         /* Toolbar Superior */
         .toolbar {
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
+            background: rgba(15, 23, 42, 0.9);
             padding: 1rem;
             display: flex;
             gap: 15px;
@@ -45,65 +43,45 @@
             flex-direction: column;
             align-items: center;
             transition: 0.3s;
-            min-width: 100px;
         }
 
         .tool-btn:hover { background: rgba(255,255,255,0.1); }
-        .tool-btn i { font-size: 1.5rem; margin-bottom: 5px; }
-        .icon-light-blue { color: var(--accent-blue); }
+        .icon-blue { color: var(--accent-blue); }
 
-        /* Area Principal */
+        /* Escritorio Central */
         .desktop-area {
-            height: calc(100vh - 100px);
+            height: calc(100vh - 120px);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             background: radial-gradient(circle, rgba(56,189,248,0.1) 0%, rgba(15,23,42,1) 70%);
         }
 
-        .brand-text { font-size: 4rem; font-weight: 800; letter-spacing: -2px; }
+        .brand-text { font-size: 4rem; font-weight: 800; letter-spacing: -2px; margin: 0; }
         .brand-text span { color: var(--accent-blue); }
 
-        /* Modales Estilo Glassmorphism */
+        /* Estilo Ventana de Ventas */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             display: none; justify-content: center; align-items: center;
             backdrop-filter: blur(5px);
             z-index: 1000;
         }
 
         .modal-window {
-            background: rgba(30, 41, 59, 0.95);
+            background: #1e293b;
             border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            width: 90%; max-width: 1000px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            width: 95%; max-width: 1100px;
+            padding: 20px;
         }
 
-        .modal-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--glass-border);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .modal-body { padding: 20px; }
-
-        /* Tabla de Ventas */
-        .table-container { background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: rgba(255,255,255,0.05); padding: 12px; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-
-        /* Footer del Modal (Lector y Totales) */
-        .purchase-footer {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            align-items: end;
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: rgba(255,255,255,0.05); padding: 12px; text-align: left; color: var(--accent-blue); }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
         .barcode-input {
             width: 100%;
@@ -112,106 +90,84 @@
             border: 2px solid var(--accent-blue);
             border-radius: 8px;
             color: var(--accent-blue);
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-family: monospace;
-            box-sizing: border-box;
+            margin-top: 10px;
         }
 
-        .total-display {
+        .total-box {
             background: var(--accent-blue);
             color: #000;
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 8px;
             text-align: right;
+            margin-top: 20px;
         }
 
-        .total-amount { font-size: 2.5rem; font-weight: 800; display: block; }
-        
-        .action-btn-stock {
-            grid-column: span 2;
-            padding: 15px;
-            background: #22c55e;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            font-size: 1.2rem;
-            cursor: pointer;
-            margin-top: 10px;
-        }
+        .total-amount { font-size: 3rem; font-weight: 900; }
     </style>
 </head>
 <body>
 
-    <section class="toolbar">
+    <header class="toolbar">
         <button class="tool-btn" onclick="abrirVentas()">
-            <i class="fas fa-cash-register icon-light-blue"></i>
+            <i class="fas fa-cash-register icon-blue"></i>
             <span>Ventas [F6]</span>
         </button>
         <button class="tool-btn">
-            <i class="fas fa-boxes icon-purple"></i>
+            <i class="fas fa-boxes"></i>
             <span>Stock</span>
         </button>
-        <button class="tool-btn exit" onclick="location.reload()">
-            <i class="fas fa-sync"></i>
-            <span>Reiniciar</span>
-        </button>
-    </section>
+    </header>
 
     <main class="desktop-area">
-        <div class="main-logo" style="text-align:center;">
-            <h1 class="brand-text">LA<span>BARRICA</span></h1>
-            <p style="opacity: 0.5;">Sistema de Gestión de Alimentos</p>
-        </div>
+        <h1 class="brand-text">LA<span>BARRICA</span></h1>
+        <p style="opacity: 0.6;">Terminal de Gestión</p>
     </main>
 
     <div id="modal-ventas" class="modal-overlay">
         <div class="modal-window">
-            <div class="modal-header">
-                <span style="font-weight:bold;">TICKET DE VENTA ACTUAL</span>
-                <button onclick="cerrarVentas()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div style="display:flex; justify-content: space-between;">
+                <h2>CAJA DE COBRO</h2>
+                <button onclick="cerrarVentas()" style="background:none; border:none; color:white; font-size:2rem; cursor:pointer;">&times;</button>
             </div>
-            <div class="modal-body">
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Cantidad/Peso</th>
-                                <th>Producto</th>
-                                <th>Precio Unit.</th>
-                                <th>Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lista-ventas-items">
-                            </tbody>
-                    </table>
-                </div>
+            
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Descripción</th>
+                            <th>Cant/Peso</th>
+                            <th>Precio</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-ventas-items"></tbody>
+                </table>
+            </div>
 
-                <div class="purchase-footer">
-                    <div class="barcode-section">
-                        <label style="display:block; margin-bottom:10px;">ESCANEAR CÓDIGO:</label>
-                        <input type="text" id="lector-barras" class="barcode-input" onkeydown="manejarLector(event)" placeholder="Lector listo..." autofocus>
-                    </div>
-                    <div class="totals-panel">
-                        <div class="total-display">
-                            <span style="font-size:0.9rem; font-weight:bold;">TOTAL A COBRAR</span>
-                            <span class="total-amount" id="total-final">$ 0.00</span>
-                        </div>
-                    </div>
-                    <button class="action-btn-stock" onclick="guardarVentaFirebase()">
-                        <i class="fas fa-check"></i> CONFIRMAR Y GUARDAR VENTA [F2]
-                    </button>
-                </div>
+            <div style="margin-top: 20px;">
+                <label>ESCANEAR PRODUCTO:</label>
+                <input type="text" id="lector-barras" class="barcode-input" onkeydown="manejarLector(event)" placeholder="Esperando lectura..." autofocus>
             </div>
+
+            <div class="total-box">
+                <div style="font-weight: bold;">TOTAL GENERAL</div>
+                <div class="total-amount" id="total-final">$ 0.00</div>
+            </div>
+
+            <button onclick="guardarVentaFirebase()" style="width:100%; padding:15px; background:#22c55e; border:none; color:white; font-weight:bold; margin-top:10px; border-radius:8px; cursor:pointer;">
+                CONFIRMAR VENTA [F2]
+            </button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Tus credenciales verificadas
+        // Estas son tus credenciales de la captura de pantalla
         const firebaseConfig = {
             apiKey: "AIzaSyB0a2iMWw5O4BxyssWe5Bp0wCXou9I1YMc",
             authDomain: "software-b7f1a.firebaseapp.com",
@@ -225,11 +181,11 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Hacer las funciones de Firebase disponibles globalmente para script.js
+        // Exportar a global para que script.js pueda usarlos
         window.db = db;
-        window.fs = { collection, addDoc, getDocs, query, where };
-        
-        console.log("Firebase conectado correctamente.");
+        window.fs = { collection, addDoc, getDocs };
+
+        console.log("✅ Firebase conectado con éxito");
     </script>
 
     <script src="script.js"></script>
