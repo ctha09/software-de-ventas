@@ -1,9 +1,9 @@
 let carritoVentas = [];
 let DB_PRODUCTOS = [];
 let totalVentaActual = 0;
-let miGrafico = null;
+let graficoGeneral = null;
 
-// --- 1. INICIALIZACIÓN Y SINCRONIZACIÓN ---
+// --- 1. INICIALIZACIÓN ---
 async function inicializar() {
     try {
         const querySnapshot = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
@@ -11,14 +11,14 @@ async function inicializar() {
         querySnapshot.forEach(doc => {
             DB_PRODUCTOS.push(doc.data());
         });
-        console.log("📦 GestOK: Inventario sincronizado");
+        console.log("📦 GestOK: Datos sincronizados");
         renderizarTablaInventario();
     } catch (error) {
         console.error("Error al sincronizar:", error);
     }
 }
 
-// --- 2. LÓGICA DE VENTAS (CAJA) ---
+// --- 2. LÓGICA DE VENTAS (TERMINAL) ---
 function manejarLector(e) {
     if (e.key === 'Enter') {
         const input = e.target.value.trim();
@@ -27,7 +27,7 @@ function manejarLector(e) {
         let codigoABuscar = input;
         let cantidad = 1;
 
-        // Soporte para balanza (Ej: 20 + 5 dígitos código + 5 dígitos peso)
+        // Soporte para balanza (Ej: prefijo 20)
         if (input.startsWith('20') && input.length >= 12) {
             codigoABuscar = input.substring(2, 7);
             cantidad = parseInt(input.substring(7, 12)) / 1000;
@@ -57,7 +57,6 @@ function actualizarTablaVentas() {
     let totalAcumulado = 0;
 
     carritoVentas.forEach(item => {
-        // Redondeo hacia arriba para evitar centavos en el subtotal
         const subtotal = Math.ceil(item.pr * item.cant);
         totalAcumulado += subtotal;
 
@@ -86,13 +85,13 @@ function eliminarItemCarrito(idTemp) {
 }
 
 function limpiarCarritoCompleto() {
-    if (carritoVentas.length > 0 && confirm("¿Desea vaciar el carrito actual?")) {
+    if (carritoVentas.length > 0 && confirm("¿Desea vaciar el carrito?")) {
         carritoVentas = [];
         actualizarTablaVentas();
     }
 }
 
-// --- 3. PROCESO DE COBRO Y STOCK ---
+// --- 3. COBRO Y TICKETS ---
 function abrirModalCobro() {
     if (carritoVentas.length === 0) return;
     document.getElementById('cobro-total-display').innerText = `$ ${totalVentaActual}`;
@@ -115,56 +114,44 @@ function cerrarModalCobro() {
 async function finalizarYRegistrarVenta(debeImprimir) {
     if (carritoVentas.length === 0) return;
 
-    const recibido = parseFloat(document.getElementById('pago-recibido').value) || 0;
     const metodoPago = document.getElementById('tipo-pago').value;
-    const vuelto = Math.max(0, recibido - totalVentaActual);
-
     const ticket = {
         fecha: new Date().toLocaleString('es-AR'),
         tipo_comprobante: document.getElementById('tipo-doc').value,
         metodo_pago: metodoPago,
         items: carritoVentas,
-        total: totalVentaActual,
-        recibido: recibido,
-        vuelto: vuelto
+        total: totalVentaActual
     };
 
     try {
-        // 1. Guardar en Historial de Firebase
+        // Guardar venta
         await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
 
-        // 2. Restar stock de cada producto
+        // Descontar stock
         for (const item of carritoVentas) {
-            const q = window.fs.query(
-                window.fs.collection(window.db, "articulos"), 
-                window.fs.where("cod", "==", String(item.cod))
-            );
-            const querySnapshot = await window.fs.getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                const docRef = window.fs.doc(window.db, "articulos", querySnapshot.docs[0].id);
-                const stockActual = querySnapshot.docs[0].data().stock || 0;
-                await window.fs.updateDoc(docRef, {
-                    stock: stockActual - item.cant
-                });
+            const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", String(item.cod)));
+            const snap = await window.fs.getDocs(q);
+            if (!snap.empty) {
+                const docRef = window.fs.doc(window.db, "articulos", snap.docs[0].id);
+                const stockActual = snap.docs[0].data().stock || 0;
+                await window.fs.updateDoc(docRef, { stock: stockActual - item.cant });
             }
         }
 
-        // 3. Impresión de Ticket
         if (debeImprimir) {
             generarTicketImpresion(ticket);
             setTimeout(() => { window.print(); }, 500);
         }
 
-        alert("✅ Venta procesada con éxito.");
+        alert("✅ Venta realizada");
         carritoVentas = [];
         actualizarTablaVentas();
         cerrarModalCobro();
-        inicializar(); // Actualiza base local de productos
+        inicializar();
 
     } catch (e) {
         console.error(e);
-        alert("Error al registrar la venta en la base de datos.");
+        alert("Error al procesar la operación.");
     }
 }
 
@@ -172,15 +159,14 @@ function generarTicketImpresion(t) {
     const container = document.getElementById('ticket-print');
     let itemsHtml = '';
     t.items.forEach(i => {
-        itemsHtml += `
-            <tr><td colspan="2">${i.det}</td></tr>
-            <tr><td>${i.cant.toFixed(3)} x $${i.pr}</td><td style="text-align:right">$${Math.ceil(i.pr*i.cant)}</td></tr>`;
+        itemsHtml += `<tr><td colspan="2">${i.det}</td></tr>
+        <tr><td>${i.cant.toFixed(3)} x $${i.pr}</td><td style="text-align:right">$${Math.ceil(i.pr*i.cant)}</td></tr>`;
     });
 
     container.innerHTML = `
         <div style="text-align:center; font-size:12px;">
             <h2 style="margin:0;">GestOK</h2>
-            <p style="margin:2px 0;">Control de Ventas</p>
+            <p style="margin:2px 0;">Comprobante de Venta</p>
             <p style="margin:2px 0;">${t.fecha}</p>
         </div>
         <p>----------------------------</p>
@@ -189,21 +175,19 @@ function generarTicketImpresion(t) {
         <div style="font-size:14px; font-weight:bold; display:flex; justify-content:space-between;">
             <span>TOTAL:</span> <span>$${t.total}</span>
         </div>
-        <div style="text-align:center; margin-top:10px; font-size:10px;">
-            <p>*** GRACIAS POR SU COMPRA ***</p>
-        </div>
     `;
 }
 
-// --- 4. HISTORIAL Y GRÁFICOS ---
+// --- 4. HISTORIAL DIARIO ---
 async function cargarHistorial() {
     const fechaSeleccionada = document.getElementById('filtro-fecha').value; 
     if (!fechaSeleccionada) return;
 
     try {
         const snapshot = await window.fs.getDocs(window.fs.collection(window.db, "ventas"));
-        let ventasDia = [];
         let totales = { "Efectivo": 0, "Tarjeta de Credito": 0, "Tarjeta de Debito": 0, "Transferencia": 0 };
+        const tbody = document.getElementById('tabla-historial-body');
+        tbody.innerHTML = '';
 
         snapshot.forEach(doc => {
             const data = doc.data();
@@ -212,8 +196,8 @@ async function cargarHistorial() {
             const fFormateada = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
 
             if (fFormateada === fechaSeleccionada) {
-                ventasDia.push(data);
                 if (totales[data.metodo_pago] !== undefined) totales[data.metodo_pago] += data.total;
+                tbody.innerHTML += `<tr><td>${data.fecha.split(',')[1]}</td><td>${data.metodo_pago}</td><td>$${data.total}</td><td><i class="fas fa-eye"></i></td></tr>`;
             }
         });
 
@@ -222,33 +206,74 @@ async function cargarHistorial() {
         document.getElementById('res-debito').innerText = `$ ${totales["Tarjeta de Debito"]}`;
         document.getElementById('res-transf').innerText = `$ ${totales["Transferencia"]}`;
 
-        const tbody = document.getElementById('tabla-historial-body');
-        tbody.innerHTML = '';
-        ventasDia.reverse().forEach(v => {
-            tbody.innerHTML += `<tr><td>${v.fecha.split(',')[1]}</td><td>${v.metodo_pago}</td><td>$${v.total}</td><td><i class="fas fa-search" style="color:var(--accent); cursor:pointer;"></i></td></tr>`;
-        });
-
-        actualizarGrafico(totales);
     } catch (e) { console.error(e); }
 }
 
-function actualizarGrafico(t) {
-    const ctx = document.getElementById('graficoVentas').getContext('2d');
-    if (miGrafico) miGrafico.destroy();
-    miGrafico = new Chart(ctx, {
+// --- 5. ESTADÍSTICAS AVANZADAS ---
+async function cargarEstadisticas() {
+    const tipo = document.getElementById('tipo-grafica').value;
+    const mesSeleccionado = document.getElementById('filtro-mes-estadistica').value;
+    const [anioSel, mesSel] = mesSeleccionado.split('-');
+
+    try {
+        const snapshot = await window.fs.getDocs(window.fs.collection(window.db, "ventas"));
+        let datosAgrupados = {};
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const [fechaParte] = data.fecha.split(',');
+            const [d, m, y] = fechaParte.trim().split('/');
+            
+            const itemMes = m.padStart(2, '0');
+            const itemAnio = y;
+            const itemDia = d.padStart(2, '0');
+
+            if (tipo === 'diaria') {
+                if (itemAnio === anioSel && itemMes === mesSel) {
+                    const etiqueta = `${itemDia}/${itemMes}`;
+                    datosAgrupados[etiqueta] = (datosAgrupados[etiqueta] || 0) + data.total;
+                }
+            } else {
+                if (itemAnio === anioSel) {
+                    const nombreMes = obtenerNombreMes(parseInt(itemMes));
+                    datosAgrupados[nombreMes] = (datosAgrupados[nombreMes] || 0) + data.total;
+                }
+            }
+        });
+
+        const etiquetas = Object.keys(datosAgrupados).sort();
+        const valores = etiquetas.map(k => datosAgrupados[k]);
+        renderizarGraficoGeneral(etiquetas, valores, tipo === 'diaria' ? 'Ventas del Mes ($)' : 'Ventas del Año ($)');
+
+    } catch (e) { console.error(e); }
+}
+
+function renderizarGraficoGeneral(labels, data, titulo) {
+    const ctx = document.getElementById('graficoGeneral').getContext('2d');
+    if (graficoGeneral) graficoGeneral.destroy();
+    graficoGeneral = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Efectivo', 'Crédito', 'Débito', 'Transf.'],
-            datasets: [{
-                data: [t["Efectivo"], t["Tarjeta de Credito"], t["Tarjeta de Debito"], t["Transferencia"]],
-                backgroundColor: ['#22c55e', '#38bdf8', '#a855f7', '#f59e0b']
-            }]
+            labels: labels,
+            datasets: [{ label: titulo, data: data, backgroundColor: '#38bdf8', borderRadius: 5 }]
         },
-        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#fff' } } },
+            scales: {
+                y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+            }
+        }
     });
 }
 
-// --- 5. GESTIÓN DE PRODUCTOS ---
+function obtenerNombreMes(n) {
+    return ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][n - 1];
+}
+
+// --- 6. GESTIÓN DE ARTÍCULOS ---
 async function subirProductoAFirebase() {
     const nuevo = {
         cod: document.getElementById('nuevo-cod').value,
@@ -262,12 +287,11 @@ async function subirProductoAFirebase() {
 }
 
 async function actualizarProductoEnFirebase() {
-    const codBusqueda = document.getElementById('edit-id').value;
-    const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", codBusqueda));
-    const snapshot = await window.fs.getDocs(q);
-    if (!snapshot.empty) {
-        const docRef = window.fs.doc(window.db, "articulos", snapshot.docs[0].id);
-        await window.fs.updateDoc(docRef, {
+    const cod = document.getElementById('edit-id').value;
+    const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", cod));
+    const snap = await window.fs.getDocs(q);
+    if (!snap.empty) {
+        await window.fs.updateDoc(window.fs.doc(window.db, "articulos", snap.docs[0].id), {
             det: document.getElementById('edit-det').value.toUpperCase(),
             pr: parseFloat(document.getElementById('edit-pr').value),
             stock: parseFloat(document.getElementById('edit-stock').value)
@@ -278,24 +302,13 @@ async function actualizarProductoEnFirebase() {
 }
 
 async function eliminarArticuloSistema(codigo) {
-    if (confirm("¿Está seguro de eliminar este artículo definitivamente?")) {
+    if (confirm("¿Eliminar artículo?")) {
         const q = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod", "==", codigo));
-        const snapshot = await window.fs.getDocs(q);
-        if (!snapshot.empty) {
-            await window.fs.deleteDoc(window.fs.doc(window.db, "articulos", snapshot.docs[0].id));
+        const snap = await window.fs.getDocs(q);
+        if (!snap.empty) {
+            await window.fs.deleteDoc(window.fs.doc(window.db, "articulos", snap.docs[0].id));
             inicializar();
         }
-    }
-}
-
-function prepararEdicion(codigo) {
-    const p = DB_PRODUCTOS.find(item => String(item.cod) === String(codigo));
-    if (p) {
-        document.getElementById('edit-id').value = p.cod;
-        document.getElementById('edit-det').value = p.det;
-        document.getElementById('edit-pr').value = p.pr;
-        document.getElementById('edit-stock').value = p.stock;
-        document.getElementById('modal-editar').style.display = 'flex';
     }
 }
 
@@ -305,13 +318,10 @@ function renderizarTablaInventario(lista = DB_PRODUCTOS) {
     tbody.innerHTML = '';
     lista.sort((a,b) => a.det.localeCompare(b.det)).forEach(p => {
         tbody.innerHTML += `<tr>
-            <td>${p.cod}</td>
-            <td>${p.det}</td>
-            <td>$${p.pr}</td>
-            <td>${p.stock.toFixed(3)}</td>
+            <td>${p.cod}</td><td>${p.det}</td><td>$${p.pr}</td><td>${p.stock.toFixed(3)}</td>
             <td>
-                <button class="btn-confirm" style="padding:5px 10px; width:auto; display:inline-block; margin-right:5px;" onclick="prepararEdicion('${p.cod}')"><i class="fas fa-edit"></i></button>
-                <button class="btn-clear" style="padding:5px 10px; width:auto; display:inline-block;" onclick="eliminarArticuloSistema('${p.cod}')"><i class="fas fa-trash"></i></button>
+                <button class="btn-confirm" style="padding:5px; width:auto;" onclick="prepararEdicion('${p.cod}')"><i class="fas fa-edit"></i></button>
+                <button class="btn-clear" style="padding:5px; width:auto;" onclick="eliminarArticuloSistema('${p.cod}')"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
     });
@@ -322,10 +332,20 @@ function filtrarArticulos(val) {
     renderizarTablaInventario(f);
 }
 
-// Modales helpers
+function prepararEdicion(cod) {
+    const p = DB_PRODUCTOS.find(x => x.cod === cod);
+    if (p) {
+        document.getElementById('edit-id').value = p.cod;
+        document.getElementById('edit-det').value = p.det;
+        document.getElementById('edit-pr').value = p.pr;
+        document.getElementById('edit-stock').value = p.stock;
+        document.getElementById('modal-editar').style.display = 'flex';
+    }
+}
+
 function cerrarModalProducto() { document.getElementById('modal-producto').style.display = 'none'; }
 function cerrarModalEditar() { document.getElementById('modal-editar').style.display = 'none'; }
 function abrirModalProducto() { document.getElementById('modal-producto').style.display = 'flex'; }
 
-// Iniciar sistema tras carga de scripts de Firebase
+// Inicio
 setTimeout(inicializar, 1000);
