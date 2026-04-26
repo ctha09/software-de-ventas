@@ -326,6 +326,191 @@
             #ticket-print { display: block !important; position: absolute; left:0; top:0; width:58mm; color:black; background:white; padding:10px; }
         }
         @media (max-width: 900px) { .caja-grid { grid-template-columns: 1fr; } .user-grid { grid-template-columns: 1fr; } }
+
+        /* ════════════════════════════════════════
+           MODO PANTALLA DIVIDIDA
+        ════════════════════════════════════════ */
+        #sec-split {
+            padding: 0;
+            display: none;
+        }
+        #sec-split.active {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .split-panel {
+            height: 100vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            padding: 20px;
+            position: relative;
+        }
+        .split-panel:first-child {
+            border-right: 2px solid rgba(56,189,248,0.2);
+            background: var(--bg-dark);
+        }
+        .split-panel:last-child {
+            background: #0d1525;
+        }
+
+        .split-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .split-user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .split-user-badge.v1 { background: rgba(56,189,248,0.12); color: var(--accent); border: 1px solid rgba(56,189,248,0.25); }
+        .split-user-badge.v2 { background: rgba(168,85,247,0.12); color: var(--purple); border: 1px solid rgba(168,85,247,0.25); }
+        .split-user-badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+        .split-user-badge.v1 .dot { background: var(--accent); }
+        .split-user-badge.v2 .dot { background: var(--purple); }
+
+        .split-exit-btn {
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.2);
+            color: var(--danger);
+            border-radius: 10px;
+            padding: 7px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .2s;
+        }
+        .split-exit-btn:hover { background: rgba(239,68,68,0.18); }
+
+        /* Scanner split */
+        .split-scanner-wrap { position: relative; margin-bottom: 14px; }
+        .split-scanner-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; }
+        .split-scanner-wrap.v1 i { color: var(--accent); }
+        .split-scanner-wrap.v2 i { color: var(--purple); }
+        .split-input {
+            width: 100%;
+            background: var(--surface2);
+            border-radius: 12px;
+            padding: 13px 14px 13px 44px;
+            font-size: 15px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            outline: none;
+            transition: .25s;
+            letter-spacing: 1px;
+            box-sizing: border-box;
+        }
+        .split-input.v1 { border: 1.5px solid rgba(56,189,248,0.25); color: var(--accent); }
+        .split-input.v1:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.07); }
+        .split-input.v2 { border: 1.5px solid rgba(168,85,247,0.25); color: var(--purple); }
+        .split-input.v2:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(168,85,247,0.07); }
+        .split-input::placeholder { color: var(--muted); font-family: 'Segoe UI', sans-serif; font-weight: 400; letter-spacing: 0; font-size: 13px; }
+        .split-input.scan-ok  { border-color: var(--success) !important; }
+        .split-input.scan-err { border-color: var(--danger) !important; }
+
+        /* Tabla split */
+        .split-items-panel { background: var(--sidebar-bg); border: 1px solid var(--glass-border); border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+        .split-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .split-table thead tr { background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--glass-border); }
+        .split-table thead th { padding: 10px 12px; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; text-align: left; }
+        .split-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .split-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+        .split-table tbody tr:last-child { border-bottom: none; }
+        .split-table td { padding: 10px 12px; vertical-align: middle; font-size: 13px; }
+        .split-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 160px; color: var(--muted); gap: 8px; }
+        .split-empty i { font-size: 2rem; opacity: .2; }
+        .split-empty p { font-size: 12px; margin: 0; }
+        .split-footer { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.15); font-size: 12px; color: var(--muted); }
+        .split-vaciar { background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer; opacity: .65; }
+        .split-vaciar:hover { opacity: 1; }
+
+        /* Total split */
+        .split-total-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--sidebar-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+        }
+        .split-total-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+        .split-total-amount { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .split-total-amount.v1 { color: var(--accent); }
+        .split-total-amount.v2 { color: var(--purple); }
+
+        /* Metodos split */
+        .split-methods { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 12px; }
+        .split-meth {
+            background: var(--surface2);
+            border: 1.5px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 8px 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: .2s;
+        }
+        .split-meth i { font-size: 14px; display: block; margin-bottom: 3px; color: var(--muted); }
+        .split-meth span { font-size: 9px; font-weight: 600; color: var(--muted); display: block; }
+        .split-meth.active.v1 { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+        .split-meth.active.v1 i, .split-meth.active.v1 span { color: var(--accent); }
+        .split-meth.active.v2 { border-color: var(--purple); background: rgba(168,85,247,0.08); }
+        .split-meth.active.v2 i, .split-meth.active.v2 span { color: var(--purple); }
+
+        /* Botón cobrar split */
+        .split-cobrar {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: .2s;
+            margin-bottom: 8px;
+        }
+        .split-cobrar.v1 { background: var(--success); }
+        .split-cobrar.v2 { background: var(--purple); }
+        .split-cobrar:disabled { opacity: .35; cursor: not-allowed; }
+        .split-cobrar:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+
+        /* Modal split cobro */
+        #modal-split-cobro {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        #modal-split-cobro.open { display: flex; }
+
+
+        .btn-split-trigger {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 9px 18px; background: rgba(56,189,248,0.08);
+            border: 1px solid rgba(56,189,248,0.25); color: var(--accent);
+            border-radius: 10px; cursor: pointer; font-size: 13px;
+            font-weight: 600; transition: .2s; white-space: nowrap;
+        }
+        .btn-split-trigger:hover { background: rgba(56,189,248,0.18); transform: scale(1.02); }
+
     </style>
 </head>
 <body>
@@ -425,6 +610,9 @@
             <h1>Terminal de Venta</h1>
             <p>Escaneá o ingresá el código del producto</p>
         </div>
+        <button class="btn-split-trigger" onclick="entrarPantallaDividida()">
+            <i class="fas fa-columns"></i> Dividir pantalla
+        </button>
         <div class="status-tag"><div class="dot"></div> Listo</div>
     </div>
 
@@ -502,6 +690,123 @@
         </aside>
     </div>
 </section>
+
+
+    <!-- ══ PANTALLA DIVIDIDA ══ -->
+    <div id="sec-split" class="section">
+
+        <!-- PANEL V1 -->
+        <div class="split-panel" id="split-left">
+            <div class="split-header">
+                <div class="split-user-badge v1">
+                    <div class="dot"></div>
+                    <span id="split-label-v1">Usuario V1</span>
+                </div>
+                <button class="split-exit-btn" onclick="salirPantallaDividida()">
+                    <i class="fas fa-compress-alt"></i> Salir del modo dividido
+                </button>
+            </div>
+            <div class="split-scanner-wrap v1">
+                <i class="fas fa-barcode"></i>
+                <input class="split-input v1" id="split-input-1" placeholder="Escanear producto..." onkeydown="splitManejarLector(event,1)" autocomplete="off">
+            </div>
+            <div class="split-items-panel">
+                <table class="split-table">
+                    <thead><tr>
+                        <th>Producto</th><th style="width:90px;">Precio</th>
+                        <th style="width:55px;text-align:center;">Cant.</th>
+                        <th style="width:80px;">Subtotal</th><th style="width:36px;"></th>
+                    </tr></thead>
+                    <tbody id="split-items-1">
+                        <tr><td colspan="5"><div class="split-empty"><i class="fas fa-shopping-cart"></i><p>Carrito vacio</p></div></td></tr>
+                    </tbody>
+                </table>
+                <div class="split-footer">
+                    <span id="split-count-1">0 articulos</span>
+                    <button class="split-vaciar" onclick="splitVaciar(1)"><i class="fas fa-trash-alt"></i> Vaciar</button>
+                </div>
+            </div>
+            <div class="split-total-row">
+                <div class="split-total-label">Total a cobrar</div>
+                <div class="split-total-amount v1" id="split-total-1">$ 0</div>
+            </div>
+            <div class="split-methods" id="split-methods-1">
+                <div class="split-meth active v1" onclick="splitSelMetodo(1,this,'Efectivo')"><i class="fas fa-money-bill-wave"></i><span>Efectivo</span></div>
+                <div class="split-meth" onclick="splitSelMetodo(1,this,'Tarjeta de Debito')"><i class="fas fa-credit-card"></i><span>Debito</span></div>
+                <div class="split-meth" onclick="splitSelMetodo(1,this,'Tarjeta de Credito')"><i class="fas fa-credit-card"></i><span>Credito</span></div>
+                <div class="split-meth" onclick="splitSelMetodo(1,this,'Transferencia')"><i class="fas fa-exchange-alt"></i><span>Transf.</span></div>
+            </div>
+            <input type="hidden" id="split-metodo-1" value="Efectivo">
+            <button class="split-cobrar v1" id="split-cobrar-1" onclick="splitAbrirCobro(1)" disabled>
+                <i class="fas fa-check-circle"></i> COBRAR
+            </button>
+        </div>
+
+        <!-- PANEL V2 -->
+        <div class="split-panel" id="split-right">
+            <div class="split-header">
+                <div class="split-user-badge v2">
+                    <div class="dot"></div>
+                    <span id="split-label-v2">Usuario V2</span>
+                </div>
+            </div>
+            <div class="split-scanner-wrap v2">
+                <i class="fas fa-barcode"></i>
+                <input class="split-input v2" id="split-input-2" placeholder="Escanear producto..." onkeydown="splitManejarLector(event,2)" autocomplete="off">
+            </div>
+            <div class="split-items-panel">
+                <table class="split-table">
+                    <thead><tr>
+                        <th>Producto</th><th style="width:90px;">Precio</th>
+                        <th style="width:55px;text-align:center;">Cant.</th>
+                        <th style="width:80px;">Subtotal</th><th style="width:36px;"></th>
+                    </tr></thead>
+                    <tbody id="split-items-2">
+                        <tr><td colspan="5"><div class="split-empty"><i class="fas fa-shopping-cart"></i><p>Carrito vacio</p></div></td></tr>
+                    </tbody>
+                </table>
+                <div class="split-footer">
+                    <span id="split-count-2">0 articulos</span>
+                    <button class="split-vaciar" onclick="splitVaciar(2)"><i class="fas fa-trash-alt"></i> Vaciar</button>
+                </div>
+            </div>
+            <div class="split-total-row">
+                <div class="split-total-label">Total a cobrar</div>
+                <div class="split-total-amount v2" id="split-total-2">$ 0</div>
+            </div>
+            <div class="split-methods" id="split-methods-2">
+                <div class="split-meth active v2" onclick="splitSelMetodo(2,this,'Efectivo')"><i class="fas fa-money-bill-wave"></i><span>Efectivo</span></div>
+                <div class="split-meth" onclick="splitSelMetodo(2,this,'Tarjeta de Debito')"><i class="fas fa-credit-card"></i><span>Debito</span></div>
+                <div class="split-meth" onclick="splitSelMetodo(2,this,'Tarjeta de Credito')"><i class="fas fa-credit-card"></i><span>Credito</span></div>
+                <div class="split-meth" onclick="splitSelMetodo(2,this,'Transferencia')"><i class="fas fa-exchange-alt"></i><span>Transf.</span></div>
+            </div>
+            <input type="hidden" id="split-metodo-2" value="Efectivo">
+            <button class="split-cobrar v2" id="split-cobrar-2" onclick="splitAbrirCobro(2)" disabled>
+                <i class="fas fa-check-circle"></i> COBRAR
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal cobro split -->
+    <div id="modal-split-cobro" class="modal-overlay">
+        <div class="modal-window" style="max-width:420px;">
+            <h2 style="margin-top:0;text-align:center;font-size:18px;font-weight:500;color:var(--muted);">Cerrar venta</h2>
+            <input type="hidden" id="split-cobro-panel">
+            <div class="modal-cobro-total" id="split-cobro-total">$ 0</div>
+            <input type="number" id="split-recibido" class="modal-recibido" placeholder="Monto recibido..." oninput="splitCalcVuelto()">
+            <div class="vuelto-box">
+                <div class="vuelto-label">Vuelto</div>
+                <div class="vuelto-amount" id="split-vuelto">$ 0</div>
+            </div>
+            <button class="cobrar-btn" onclick="splitFinalizar(false)" style="margin-bottom:10px;">
+                <i class="fas fa-check"></i> CONFIRMAR COBRO
+            </button>
+            <button class="btn btn-print" onclick="splitFinalizar(true)" style="margin-bottom:10px;">
+                <i class="fas fa-print"></i> Cobrar e imprimir
+            </button>
+            <button class="btn btn-clear" onclick="splitCerrarCobro()">CANCELAR</button>
+        </div>
+    </div>
 
 <!-- ══════════════════════════════════════
      SEC-ARTÍCULOS
@@ -821,6 +1126,213 @@
         const imprimir = document.getElementById('modal-imprimir-flag').value === 'si';
         finalizarYRegistrarVenta(imprimir);
     }
+
+    // ══════════════════════════════════════════
+    //  PANTALLA DIVIDIDA
+    // ══════════════════════════════════════════
+    let splitCarritos = { 1: [], 2: [] };
+    let splitTotales  = { 1: 0,  2: 0  };
+
+    function entrarPantallaDividida() {
+        // Pasar el carrito actual de sec-ventas al panel 1
+        splitCarritos[1] = JSON.parse(JSON.stringify(carritoVentas));
+        splitCarritos[2] = [];
+        splitTotales[1]  = totalVentaActual;
+        splitTotales[2]  = 0;
+
+        // Labels de usuario
+        const nombre1 = usuarioActual === 'v1' ? 'Usuario V1' : usuarioActual === 'admin' ? 'Admin' : 'Usuario V1';
+        document.getElementById('split-label-v1').textContent = nombre1;
+        document.getElementById('split-label-v2').textContent = 'Usuario V2';
+
+        splitRenderizar(1);
+        splitRenderizar(2);
+
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('sec-split').classList.add('active');
+        setTimeout(() => document.getElementById('split-input-1').focus(), 300);
+    }
+
+    function salirPantallaDividida() {
+        // Devolver carrito del panel 1 a la terminal principal
+        carritoVentas    = JSON.parse(JSON.stringify(splitCarritos[1]));
+        totalVentaActual = splitTotales[1];
+        actualizarTablaVentas();
+        verSeccion('ventas');
+    }
+
+    async function splitManejarLector(e, panel) {
+        if (e.key !== 'Enter') return;
+        const input = e.target.value.trim();
+        if (!input) return;
+
+        let cod = input, cant = 1;
+        if (input.startsWith('20') && input.length >= 12) {
+            cod  = input.substring(2, 7);
+            cant = parseInt(input.substring(7, 12)) / 1000;
+        }
+
+        e.target.value = '';
+
+        const prodLocal = DB_PRODUCTOS.find(p => String(p.cod) === String(cod));
+        if (prodLocal) {
+            splitAgregarItem(panel, prodLocal, cant);
+            splitFlash(panel, 'ok');
+        } else {
+            // Buscar en Firebase
+            try {
+                const q    = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod","==",String(cod)));
+                const snap = await window.fs.getDocs(q);
+                if (!snap.empty) {
+                    const prod = snap.docs[0].data();
+                    if (!DB_PRODUCTOS.find(p => String(p.cod) === String(prod.cod))) DB_PRODUCTOS.push(prod);
+                    splitAgregarItem(panel, prod, cant);
+                    splitFlash(panel, 'ok');
+                } else {
+                    splitFlash(panel, 'err');
+                    mostrarToast('Producto no encontrado: ' + cod);
+                }
+            } catch(err) { mostrarToast('Error de conexion'); }
+        }
+    }
+
+    function splitAgregarItem(panel, prod, cant) {
+        const carrito  = splitCarritos[panel];
+        const existente = carrito.find(i => String(i.cod) === String(prod.cod));
+        if (existente) {
+            existente.cant += cant;
+        } else {
+            carrito.push({ id_temp: Date.now()+Math.random(), cod: prod.cod, det: prod.det, pr: parseFloat(prod.pr), cant });
+        }
+        splitRenderizar(panel);
+    }
+
+    function splitRenderizar(panel) {
+        const tbody = document.getElementById('split-items-' + panel);
+        const carrito = splitCarritos[panel];
+        let total = 0, totalItems = 0;
+
+        if (carrito.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5"><div class="split-empty"><i class="fas fa-shopping-cart"></i><p>Carrito vacio</p></div></td></tr>';
+            document.getElementById('split-total-' + panel).textContent = '$ 0';
+            document.getElementById('split-count-' + panel).textContent = '0 articulos';
+            document.getElementById('split-cobrar-' + panel).disabled = true;
+            splitTotales[panel] = 0;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        carrito.forEach(item => {
+            const sub = Math.ceil(item.pr * item.cant);
+            total += sub;
+            totalItems += item.cant;
+            const tr = document.createElement('tr');
+            const cantDisplay = Number.isInteger(item.cant) ? item.cant : item.cant.toFixed(3);
+            tr.innerHTML = `
+                <td style="font-size:13px;font-weight:500;">${item.det}<br><span style="font-size:10px;color:var(--muted);font-family:monospace;">${item.cod}</span></td>
+                <td style="font-size:12px;color:var(--muted);">$${item.pr.toLocaleString('es-AR')}</td>
+                <td style="text-align:center;"><span class="qty-badge">${cantDisplay}</span></td>
+                <td style="font-size:13px;font-weight:600;">$${sub.toLocaleString('es-AR')}</td>
+                <td><div class="del-item" onclick="splitEliminar(${panel},${item.id_temp})"><i class="fas fa-times"></i></div></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        splitTotales[panel] = total;
+        document.getElementById('split-total-' + panel).textContent = '$ ' + total.toLocaleString('es-AR');
+        const label = Number.isInteger(totalItems) ? totalItems : totalItems.toFixed(3);
+        document.getElementById('split-count-' + panel).textContent = label + ' articulo' + (totalItems !== 1 ? 's' : '');
+        document.getElementById('split-cobrar-' + panel).disabled = false;
+    }
+
+    function splitEliminar(panel, idTemp) {
+        splitCarritos[panel] = splitCarritos[panel].filter(i => i.id_temp !== idTemp);
+        splitRenderizar(panel);
+    }
+
+    function splitVaciar(panel) {
+        if (splitCarritos[panel].length === 0) return;
+        if (confirm('Vaciar carrito?')) { splitCarritos[panel] = []; splitRenderizar(panel); }
+    }
+
+    function splitSelMetodo(panel, el, valor) {
+        const container = document.getElementById('split-methods-' + panel);
+        container.querySelectorAll('.split-meth').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('split-metodo-' + panel).value = valor;
+    }
+
+    function splitFlash(panel, tipo) {
+        const inp = document.getElementById('split-input-' + panel);
+        inp.classList.add(tipo === 'ok' ? 'scan-ok' : 'scan-err');
+        setTimeout(() => inp.classList.remove('scan-ok','scan-err'), 420);
+    }
+
+    function splitAbrirCobro(panel) {
+        if (splitCarritos[panel].length === 0) return;
+        document.getElementById('split-cobro-panel').value = panel;
+        document.getElementById('split-cobro-total').textContent = '$ ' + splitTotales[panel].toLocaleString('es-AR');
+        document.getElementById('split-recibido').value = '';
+        document.getElementById('split-vuelto').textContent = '$ 0';
+        document.getElementById('modal-split-cobro').style.display = 'flex';
+        setTimeout(() => document.getElementById('split-recibido').focus(), 150);
+    }
+
+    function splitCerrarCobro() {
+        document.getElementById('modal-split-cobro').style.display = 'none';
+    }
+
+    function splitCalcVuelto() {
+        const panel    = parseInt(document.getElementById('split-cobro-panel').value);
+        const recibido = parseFloat(document.getElementById('split-recibido').value) || 0;
+        const vuelto   = recibido - splitTotales[panel];
+        document.getElementById('split-vuelto').textContent = '$ ' + (vuelto > 0 ? Math.floor(vuelto).toLocaleString('es-AR') : 0);
+    }
+
+    async function splitFinalizar(imprimir) {
+        const panel   = parseInt(document.getElementById('split-cobro-panel').value);
+        const carrito = splitCarritos[panel];
+        if (carrito.length === 0) return;
+
+        const usuarioLabel = panel === 1
+            ? document.getElementById('split-label-v1').textContent
+            : document.getElementById('split-label-v2').textContent;
+
+        const ticket = {
+            fecha: new Date().toLocaleString('es-AR'),
+            tipo_comprobante: 'Ticket No Fiscal',
+            metodo_pago: document.getElementById('split-metodo-' + panel).value,
+            items: JSON.parse(JSON.stringify(carrito)),
+            total: splitTotales[panel],
+            vendedor: usuarioLabel
+        };
+
+        try {
+            await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
+
+            for (const item of carrito) {
+                const q    = window.fs.query(window.fs.collection(window.db,"articulos"), window.fs.where("cod","==",String(item.cod)));
+                const snap = await window.fs.getDocs(q);
+                if (!snap.empty) {
+                    const docRef = window.fs.doc(window.db,"articulos",snap.docs[0].id);
+                    await window.fs.updateDoc(docRef, { stock: (snap.docs[0].data().stock||0) - item.cant });
+                }
+            }
+
+            if (imprimir) { generarTicketImpresion(ticket); setTimeout(()=>window.print(),500); }
+
+            mostrarToast('Venta registrada — Panel ' + panel + ' — $' + splitTotales[panel].toLocaleString('es-AR'));
+            splitCarritos[panel] = [];
+            splitRenderizar(panel);
+            splitCerrarCobro();
+            inicializar();
+
+        } catch(err) {
+            console.error(err);
+            mostrarToast('Error al procesar la venta.');
+        }
+    }
+
 </script>
 </body>
 </html>
