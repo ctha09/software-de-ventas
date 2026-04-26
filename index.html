@@ -118,15 +118,23 @@
 
         /* Tabla items */
         .items-panel { background: var(--sidebar-bg); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; }
-        .items-header-row { display: grid; grid-template-columns: 2fr 1fr 80px 1fr 38px; padding: 12px 20px; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.25); }
-        .items-header-row span { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
         .items-body { min-height: 280px; }
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 280px; color: var(--muted); gap: 10px; }
         .empty-state i { font-size: 2.5rem; opacity: .25; }
         .empty-state p { font-size: 13px; margin: 0; }
-        .item-row { display: grid; grid-template-columns: 2fr 1fr 80px 1fr 38px; padding: 13px 20px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; animation: slideRow .2s ease; }
-        .item-row:hover { background: rgba(255,255,255,0.02); }
+
+        /* Tabla real */
+        .items-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .items-table thead tr { background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--glass-border); }
+        .items-table thead th { padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; text-align: left; }
+        .items-table thead th:nth-child(3) { text-align: center; }
+        .items-table thead th:last-child  { width: 44px; }
+        .items-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.05); transition: background .15s; animation: slideRow .2s ease; }
+        .items-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+        .items-table tbody tr:last-child { border-bottom: none; }
+        .items-table td { padding: 13px 16px; vertical-align: middle; }
         @keyframes slideRow { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
         .item-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .item-cod  { font-size: 11px; color: var(--muted); font-family: monospace; margin-top: 2px; }
         .item-price { font-size: 14px; color: var(--muted); }
@@ -252,20 +260,28 @@
         <div class="caja-grid">
             <!-- Lista de ítems -->
             <div class="items-panel">
-                <div class="items-header-row">
-                    <span>Producto</span>
-                    <span>Precio unit.</span>
-                    <span style="text-align:center">Cant.</span>
-                    <span>Subtotal</span>
-                    <span></span>
-                </div>
-                <div class="items-body" id="lista-ventas-items">
-                    <div class="empty-state">
-                        <i class="fas fa-shopping-cart"></i>
-                        <p>El carrito está vacío</p>
-                        <p style="font-size:12px; opacity:.6;">Escaneá un producto para comenzar</p>
-                    </div>
-                </div>
+                <table class="items-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Precio unit.</th>
+                            <th style="text-align:center;">Cant.</th>
+                            <th>Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-ventas-items">
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    <p>El carrito está vacío</p>
+                                    <p style="font-size:12px; opacity:.6;">Escaneá un producto para comenzar</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
                 <div class="items-footer">
                     <span class="items-count" id="items-count-label">0 artículos</span>
                     <button class="vaciar-link" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash-alt"></i> Vaciar carrito</button>
