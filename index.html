@@ -22,16 +22,18 @@
             --glass-border: rgba(255, 255, 255, 0.08);
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            margin: 0;
+        html, body {
+            margin: 0; padding: 0;
             background-color: var(--bg-dark);
             color: var(--text);
             font-family: 'Segoe UI', sans-serif;
-            min-height: 100vh;
-            overflow-x: hidden;
+            height: 100%; width: 100%;
+            overflow: hidden;
         }
+
+        
 
         /* ── BOTÓN VOLVER ── */
         .btn-back {
@@ -58,9 +60,19 @@
         .card-menu p { opacity: 0.5; font-size: 0.95rem; }
 
         /* ── LAYOUT ── */
-        .main-content { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; }
-        .section { display: none; animation: fadeIn 0.35s ease forwards; }
-        .section.active { display: block; }
+        .main-content { width: 100%; height: 100%; }
+        .section-inner { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; }
+        .section {
+            display: none;
+            position: fixed;
+            inset: 0;
+            overflow-y: auto;
+            background: var(--bg-dark);
+        }
+        .section.active {
+            display: block;
+            animation: fadeIn 0.35s ease forwards;
+        }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
         /* ── TABLAS GLOBALES ── */
@@ -115,6 +127,9 @@
 
         /* Grid ventas */
         .caja-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
+        /* Limitar ancho del contenido en secciones de contenido */
+        #sec-ventas > *, #sec-articulos > *, #sec-historial > *, #sec-estadisticas > * { max-width: 1360px; }
+        #sec-ventas, #sec-articulos, #sec-historial, #sec-estadisticas { max-width: 1400px; margin-left: auto; margin-right: auto; }
 
         /* Tabla items */
         .items-panel { background: var(--sidebar-bg); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; }
@@ -206,7 +221,7 @@
         /* ════════════════════════════════════════
            PANTALLA DE SELECCIÓN DE USUARIO
         ════════════════════════════════════════ */
-        #sec-login { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px; }
+        #sec-login { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; min-height: 100%; }
         .login-brand { text-align: center; margin-bottom: 60px; }
         .login-brand h1 { font-size: 4rem; font-weight: 900; letter-spacing: -3px; margin: 0; }
         .login-brand p  { opacity: 0.4; font-size: 1.1rem; letter-spacing: 1px; margin-top: 8px; }
@@ -272,12 +287,37 @@
         @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 80%{transform:translateX(-4px)} }
 
         /* Bloqueado */
-        #sec-bloqueado { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; }
+        #sec-bloqueado { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; text-align: center; }
+        #sec-dashboard-inner { max-width: 1200px; margin: 0 auto; width: 100%; }
         .lock-icon { font-size: 4rem; color: var(--danger); opacity: .7; margin-bottom: 20px; }
         #sec-bloqueado h2 { font-size: 1.5rem; font-weight: 700; margin: 0 0 10px; }
         #sec-bloqueado p  { opacity: .5; margin: 0 0 30px; }
 
         @media (max-width: 700px) { .user-grid { grid-template-columns: 1fr; } }
+
+        /* Cards bloqueadas para operadores */
+        .card-locked { position: relative; }
+        .card-locked::after {
+            content: '\f023';
+            font-family: 'Font Awesome 6 Free'; font-weight: 900;
+            position: absolute; top: 14px; right: 18px;
+            font-size: 14px; color: var(--muted); opacity: .5;
+        }
+        .card-locked:hover { border-color: var(--muted) !important; background: rgba(255,255,255,0.03) !important; transform: translateY(-4px) !important; box-shadow: none !important; }
+
+        /* Chip de usuario activo en dashboard */
+        .user-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 600;
+            margin-bottom: 40px; color: var(--muted);
+        }
+        .user-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+        .user-chip.admin .chip-dot { background: var(--warning); }
+        .user-chip.admin { color: var(--warning); border-color: rgba(245,158,11,0.2); }
+
+        /* section-inner padding */
+        .section-inner { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; }
 
     </style>
 </head>
@@ -285,113 +325,65 @@
 
 <div id="ticket-print"></div>
 
-<main class="main-content">
-
-    <!-- ══ PANTALLA SELECCIÓN USUARIO ══ -->
-    <div id="sec-login" class="section active">
-        <div class="login-brand">
-            <h1>Gest<span style="color:var(--accent);">OK</span></h1>
-            <p>Seleccioná tu usuario para continuar</p>
+<!-- ══ PANTALLA SELECCIÓN USUARIO ══ -->
+<div id="sec-login" class="section active">
+    <div class="login-brand">
+        <h1>Gest<span style="color:var(--accent);">OK</span></h1>
+        <p>Seleccioná tu usuario para continuar</p>
+    </div>
+    <div class="user-grid">
+        <div class="user-card" onclick="entrarComoOperador('v1')">
+            <div class="user-avatar avatar-v">V1</div>
+            <h3>Usuario V1</h3>
+            <p>Acceso a ventas</p>
+            <span class="user-badge badge-op">Operador</span>
         </div>
-
-        <div class="user-grid">
-            <!-- Usuario V1 -->
-            <div class="user-card" onclick="entrarComoOperador('v1')">
-                <div class="user-avatar avatar-v">V1</div>
-                <h3>Usuario V1</h3>
-                <p>Acceso a ventas</p>
-                <span class="user-badge badge-op">Operador</span>
-            </div>
-
-            <!-- Usuario V2 -->
-            <div class="user-card" onclick="entrarComoOperador('v2')">
-                <div class="user-avatar avatar-v">V2</div>
-                <h3>Usuario V2</h3>
-                <p>Acceso a ventas</p>
-                <span class="user-badge badge-op">Operador</span>
-            </div>
-
-            <!-- Usuario A -->
-            <div class="user-card admin-card" onclick="abrirPinAdmin()">
-                <div class="user-avatar avatar-a">A</div>
-                <h3>Usuario A</h3>
-                <p>Acceso completo al sistema</p>
-                <span class="user-badge badge-adm"><i class="fas fa-lock" style="font-size:10px;"></i> Administrador</span>
-            </div>
+        <div class="user-card" onclick="entrarComoOperador('v2')">
+            <div class="user-avatar avatar-v">V2</div>
+            <h3>Usuario V2</h3>
+            <p>Acceso a ventas</p>
+            <span class="user-badge badge-op">Operador</span>
+        </div>
+        <div class="user-card admin-card" onclick="abrirPinAdmin()">
+            <div class="user-avatar avatar-a">A</div>
+            <h3>Usuario A</h3>
+            <p>Acceso completo al sistema</p>
+            <span class="user-badge badge-adm"><i class="fas fa-lock" style="font-size:10px;"></i> Administrador</span>
         </div>
     </div>
+</div>
 
-    <!-- ══ PANTALLA BLOQUEADA ══ -->
-    <div id="sec-bloqueado" class="section">
-        <i class="fas fa-lock lock-icon"></i>
-        <h2>Acceso restringido</h2>
-        <p>Solo el Usuario A tiene permiso a esta información.</p>
-        <button class="btn-back" onclick="verSeccion('dashboard')" style="margin:0;">
-            <i class="fas fa-arrow-left"></i> Volver al inicio
-        </button>
-    </div>
-
-    <!-- ══ MODAL PIN ADMIN ══ -->
-    <div id="modal-pin" class="modal-overlay">
-        <div class="modal-window" style="max-width:340px; text-align:center;">
-            <div style="font-size:2rem; margin-bottom:8px;">🔐</div>
-            <h3 style="margin:0 0 4px; font-size:18px; font-weight:600;">Usuario A</h3>
-            <p style="opacity:.5; font-size:13px; margin:0 0 4px;">Ingresá tu PIN de acceso</p>
-
-            <div class="pin-dots" id="pin-dots">
-                <div class="pin-dot" id="dot-0"></div>
-                <div class="pin-dot" id="dot-1"></div>
-                <div class="pin-dot" id="dot-2"></div>
-                <div class="pin-dot" id="dot-3"></div>
-            </div>
-
-            <div class="pin-pad">
-                <div class="pin-key" onclick="pinPresionar('1')">1</div>
-                <div class="pin-key" onclick="pinPresionar('2')">2</div>
-                <div class="pin-key" onclick="pinPresionar('3')">3</div>
-                <div class="pin-key" onclick="pinPresionar('4')">4</div>
-                <div class="pin-key" onclick="pinPresionar('5')">5</div>
-                <div class="pin-key" onclick="pinPresionar('6')">6</div>
-                <div class="pin-key" onclick="pinPresionar('7')">7</div>
-                <div class="pin-key" onclick="pinPresionar('8')">8</div>
-                <div class="pin-key" onclick="pinPresionar('9')">9</div>
-                <div class="pin-key pin-key-del" onclick="pinBorrar()"><i class="fas fa-delete-left"></i></div>
-                <div class="pin-key pin-key-0" onclick="pinPresionar('0')">0</div>
-            </div>
-
-            <div class="pin-error" id="pin-error"></div>
-            <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarPinAdmin()">CANCELAR</button>
-        </div>
-    </div>
-
-    <!-- ══ DASHBOARD ══ -->
-    <div id="sec-dashboard" class="section">
+<!-- ══ DASHBOARD ══ -->
+<div id="sec-dashboard" class="section">
+    <div class="section-inner">
         <div style="text-align:center; margin-bottom:70px; margin-top:50px;">
             <h1 style="font-size:4rem; font-weight:900; letter-spacing:-3px; margin:0;">
                 Gest<span style="color:var(--accent);">OK</span>
             </h1>
             <p style="opacity:0.5; font-size:1.2rem; letter-spacing:1px;">Gestión de Inventario y Ventas Inteligente</p>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:28px; max-width:1200px; margin:0 auto;">
+        <div id="user-chip-wrap" style="text-align:center;"></div>
+        <div id="dashboard-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:28px; max-width:1200px; margin:0 auto;">
             <div class="card-menu" onclick="verSeccion('ventas')">
                 <i class="fas fa-cash-register"></i><h2>VENTAS</h2><p>Terminal de caja y facturación.</p>
             </div>
-            <div class="card-menu" onclick="verSeccion('articulos')">
+            <div class="card-menu card-locked" id="card-articulos" onclick="verSeccion('articulos')">
                 <i class="fas fa-boxes-stacked"></i><h2>ARTÍCULOS</h2><p>Gestión de stock y precios.</p>
             </div>
-            <div class="card-menu" onclick="verSeccion('historial')">
+            <div class="card-menu card-locked" id="card-historial" onclick="verSeccion('historial')">
                 <i class="fas fa-history"></i><h2>HISTORIAL</h2><p>Revisar tickets y cierres diarios.</p>
             </div>
-            <div class="card-menu" onclick="verSeccion('estadisticas')">
+            <div class="card-menu card-locked" id="card-estadisticas" onclick="verSeccion('estadisticas')">
                 <i class="fas fa-chart-bar"></i><h2>ESTADÍSTICAS</h2><p>Análisis de rendimiento mensual.</p>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- ══ VENTAS ══ -->
-    <div id="sec-ventas" class="section">
+<!-- ══ VENTAS ══ -->
+<div id="sec-ventas" class="section">
+    <div class="section-inner">
         <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
-
         <div class="ventas-header">
             <div>
                 <h1>Terminal de Venta</h1>
@@ -401,8 +393,6 @@
                 <div class="dot"></div> Listo
             </div>
         </div>
-
-        <!-- Scanner -->
         <div class="scanner-wrap">
             <i class="fas fa-barcode"></i>
             <input type="text" id="lector-barras"
@@ -410,9 +400,7 @@
                    onkeydown="manejarLector(event)"
                    autocomplete="off">
         </div>
-
         <div class="caja-grid">
-            <!-- Lista de ítems -->
             <div class="items-panel">
                 <table class="items-table">
                     <thead>
@@ -441,10 +429,7 @@
                     <button class="vaciar-link" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash-alt"></i> Vaciar carrito</button>
                 </div>
             </div>
-
-            <!-- Panel de pago -->
             <aside class="pay-panel">
-                <!-- Comprobante -->
                 <div class="pay-card">
                     <div class="pay-card-label">Tipo de comprobante</div>
                     <select id="tipo-doc" onchange="actualizarTablaVentas()">
@@ -453,15 +438,11 @@
                         <option value="Factura B">Factura B</option>
                     </select>
                 </div>
-
-                <!-- Total -->
                 <div class="total-card">
                     <div class="pay-card-label">Total a cobrar</div>
                     <div class="total-price" id="total-final">$ 0</div>
                     <div class="total-meta" id="total-meta-label">—</div>
                 </div>
-
-                <!-- Método de pago -->
                 <div class="pay-card">
                     <div class="pay-card-label">Método de pago</div>
                     <input type="hidden" id="tipo-pago" value="Efectivo">
@@ -484,8 +465,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Botones -->
                 <button class="cobrar-btn" id="cobrar-btn" onclick="abrirModalCobro()" disabled>
                     <i class="fas fa-check-circle"></i> COBRAR
                 </button>
@@ -495,9 +474,11 @@
             </aside>
         </div>
     </div>
+</div>
 
-    <!-- ══ ARTÍCULOS ══ -->
-    <div id="sec-articulos" class="section">
+<!-- ══ ARTÍCULOS ══ -->
+<div id="sec-articulos" class="section">
+    <div class="section-inner">
         <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
             <h1>Inventario</h1>
@@ -507,21 +488,20 @@
         </div>
         <input type="text" class="form-input" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarArticulos(this.value)">
         <table class="v-table">
-            <thead>
-                <tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr>
-            </thead>
+            <thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
             <tbody id="tabla-inventario-body"></tbody>
         </table>
     </div>
+</div>
 
-    <!-- ══ HISTORIAL ══ -->
-    <div id="sec-historial" class="section">
+<!-- ══ HISTORIAL ══ -->
+<div id="sec-historial" class="section">
+    <div class="section-inner">
         <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
             <h1>Cierres de Caja</h1>
             <input type="date" id="filtro-fecha" class="form-input" style="width:auto;" onchange="cargarHistorial()">
         </div>
-
         <div class="resumen-grid">
             <div class="resumen-card" style="background:rgba(34,197,94,0.08); border-color:rgba(34,197,94,0.2);">
                 <span>Efectivo</span><div id="res-efectivo" style="color:var(--success);">$ 0</div>
@@ -536,15 +516,16 @@
                 <span>Transferencia</span><div id="res-transf" style="color:var(--warning);">$ 0</div>
             </div>
         </div>
-
         <table class="v-table">
             <thead><tr><th>Hora</th><th>Método</th><th>Total</th><th>Detalle</th></tr></thead>
             <tbody id="tabla-historial-body"></tbody>
         </table>
     </div>
+</div>
 
-    <!-- ══ ESTADÍSTICAS ══ -->
-    <div id="sec-estadisticas" class="section">
+<!-- ══ ESTADÍSTICAS ══ -->
+<div id="sec-estadisticas" class="section">
+    <div class="section-inner">
         <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
             <h1>Estadísticas de Ventas</h1>
@@ -560,59 +541,94 @@
             <canvas id="graficoGeneral" height="120"></canvas>
         </div>
     </div>
+</div>
 
-    <!-- ══ MODAL COBRO ══ -->
-    <div id="modal-cobro" class="modal-overlay">
-        <div class="modal-window">
-            <h2 style="margin-top:0; text-align:center; font-size:18px; font-weight:500; color:var(--muted);">Cerrar venta</h2>
-            <input type="hidden" id="modal-imprimir-flag" value="no">
-            <div class="modal-cobro-total" id="cobro-total-display">$ 0</div>
+<!-- ══ PANTALLA BLOQUEADA ══ -->
+<div id="sec-bloqueado" class="section">
+    <i class="fas fa-lock lock-icon"></i>
+    <h2>Acceso restringido</h2>
+    <p>Solo el Usuario A tiene permiso a esta información.</p>
+    <button class="btn-back" onclick="verSeccion('dashboard')" style="margin:0;">
+        <i class="fas fa-arrow-left"></i> Volver al inicio
+    </button>
+</div>
 
-            <input type="number" id="pago-recibido" class="modal-recibido"
-                   placeholder="Monto recibido..." oninput="calcularVuelto()">
-
-            <div class="vuelto-box">
-                <div class="vuelto-label">Vuelto</div>
-                <div class="vuelto-amount" id="cobro-vuelto-display">$ 0</div>
-            </div>
-
-            <button class="cobrar-btn" onclick="confirmarCobro()" style="margin-bottom:10px;">
-                <i class="fas fa-check"></i> CONFIRMAR COBRO
-            </button>
-            <button class="btn btn-print" onclick="confirmarCobro()" style="margin-bottom:10px;">
-                <i class="fas fa-print"></i> Cobrar e imprimir
-            </button>
-            <button class="btn btn-clear" onclick="cerrarModalCobro()">CANCELAR</button>
+<!-- ══ MODAL COBRO ══ -->
+<div id="modal-cobro" class="modal-overlay">
+    <div class="modal-window">
+        <h2 style="margin-top:0; text-align:center; font-size:18px; font-weight:500; color:var(--muted);">Cerrar venta</h2>
+        <input type="hidden" id="modal-imprimir-flag" value="no">
+        <div class="modal-cobro-total" id="cobro-total-display">$ 0</div>
+        <input type="number" id="pago-recibido" class="modal-recibido" placeholder="Monto recibido..." oninput="calcularVuelto()">
+        <div class="vuelto-box">
+            <div class="vuelto-label">Vuelto</div>
+            <div class="vuelto-amount" id="cobro-vuelto-display">$ 0</div>
         </div>
+        <button class="cobrar-btn" onclick="confirmarCobro()" style="margin-bottom:10px;">
+            <i class="fas fa-check"></i> CONFIRMAR COBRO
+        </button>
+        <button class="btn btn-print" onclick="confirmarCobro()" style="margin-bottom:10px;">
+            <i class="fas fa-print"></i> Cobrar e imprimir
+        </button>
+        <button class="btn btn-clear" onclick="cerrarModalCobro()">CANCELAR</button>
     </div>
+</div>
 
-    <!-- ══ MODAL NUEVO PRODUCTO ══ -->
-    <div id="modal-producto" class="modal-overlay">
-        <div class="modal-window">
-            <h3 style="margin-top:0;">Nuevo Artículo</h3>
-            <input type="text"   id="nuevo-cod"   class="form-input" placeholder="Código">
-            <input type="text"   id="nuevo-det"   class="form-input" placeholder="Nombre">
-            <input type="number" id="nuevo-pr"    class="form-input" placeholder="Precio ($)">
-            <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock">
-            <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
-            <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalProducto()">VOLVER</button>
+<!-- ══ MODAL PIN ADMIN ══ -->
+<div id="modal-pin" class="modal-overlay">
+    <div class="modal-window" style="max-width:340px; text-align:center;">
+        <div style="font-size:2rem; margin-bottom:8px;">&#128272;</div>
+        <h3 style="margin:0 0 4px; font-size:18px; font-weight:600;">Usuario A</h3>
+        <p style="opacity:.5; font-size:13px; margin:0 0 4px;">Ingresá tu PIN de acceso</p>
+        <div class="pin-dots" id="pin-dots">
+            <div class="pin-dot" id="dot-0"></div>
+            <div class="pin-dot" id="dot-1"></div>
+            <div class="pin-dot" id="dot-2"></div>
+            <div class="pin-dot" id="dot-3"></div>
         </div>
-    </div>
-
-    <!-- ══ MODAL EDITAR PRODUCTO ══ -->
-    <div id="modal-editar" class="modal-overlay">
-        <div class="modal-window">
-            <h3 style="margin-top:0;">Editar Artículo</h3>
-            <input type="hidden" id="edit-id">
-            <input type="text"   id="edit-det"   class="form-input">
-            <input type="number" id="edit-pr"    class="form-input">
-            <input type="number" id="edit-stock" class="form-input">
-            <button class="btn btn-confirm" onclick="actualizarProductoEnFirebase()">ACTUALIZAR</button>
-            <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalEditar()">SALIR</button>
+        <div class="pin-pad">
+            <div class="pin-key" onclick="pinPresionar('1')">1</div>
+            <div class="pin-key" onclick="pinPresionar('2')">2</div>
+            <div class="pin-key" onclick="pinPresionar('3')">3</div>
+            <div class="pin-key" onclick="pinPresionar('4')">4</div>
+            <div class="pin-key" onclick="pinPresionar('5')">5</div>
+            <div class="pin-key" onclick="pinPresionar('6')">6</div>
+            <div class="pin-key" onclick="pinPresionar('7')">7</div>
+            <div class="pin-key" onclick="pinPresionar('8')">8</div>
+            <div class="pin-key" onclick="pinPresionar('9')">9</div>
+            <div class="pin-key pin-key-del" onclick="pinBorrar()"><i class="fas fa-delete-left"></i></div>
+            <div class="pin-key pin-key-0" onclick="pinPresionar('0')">0</div>
         </div>
+        <div class="pin-error" id="pin-error"></div>
+        <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarPinAdmin()">CANCELAR</button>
     </div>
+</div>
 
-</main>
+<!-- ══ MODAL NUEVO PRODUCTO ══ -->
+<div id="modal-producto" class="modal-overlay">
+    <div class="modal-window">
+        <h3 style="margin-top:0;">Nuevo Artículo</h3>
+        <input type="text"   id="nuevo-cod"   class="form-input" placeholder="Código">
+        <input type="text"   id="nuevo-det"   class="form-input" placeholder="Nombre">
+        <input type="number" id="nuevo-pr"    class="form-input" placeholder="Precio ($)">
+        <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock">
+        <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
+        <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalProducto()">VOLVER</button>
+    </div>
+</div>
+
+<!-- ══ MODAL EDITAR PRODUCTO ══ -->
+<div id="modal-editar" class="modal-overlay">
+    <div class="modal-window">
+        <h3 style="margin-top:0;">Editar Artículo</h3>
+        <input type="hidden" id="edit-id">
+        <input type="text"   id="edit-det"   class="form-input">
+        <input type="number" id="edit-pr"    class="form-input">
+        <input type="number" id="edit-stock" class="form-input">
+        <button class="btn btn-confirm" onclick="actualizarProductoEnFirebase()">ACTUALIZAR</button>
+        <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalEditar()">SALIR</button>
+    </div>
+</div>
 
 <!-- Firebase -->
 <script type="module">
@@ -658,6 +674,7 @@
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('sec-' + id).classList.add('active');
 
+        if (id === 'dashboard') actualizarDashboard();
         if (id === 'ventas')       setTimeout(() => document.getElementById('lector-barras').focus(), 300);
         if (id === 'historial')    { document.getElementById('filtro-fecha').value = new Date().toISOString().split('T')[0]; cargarHistorial(); }
         if (id === 'estadisticas') { document.getElementById('filtro-mes-estadistica').value = new Date().toISOString().substring(0,7); cargarEstadisticas(); }
@@ -717,6 +734,31 @@
         }
     }
 
+    // ── ACTUALIZAR DASHBOARD SEGÚN ROL ──
+    function actualizarDashboard() {
+        const esAdmin = usuarioActual === 'admin';
+        const chip = document.getElementById('user-chip-wrap');
+        const nombre = usuarioActual === 'v1' ? 'Usuario V1' : usuarioActual === 'v2' ? 'Usuario V2' : 'Usuario A — Administrador';
+        chip.innerHTML = '<div class="user-chip' + (esAdmin ? ' admin' : '') + '"><div class="chip-dot"></div>' + nombre + '<button onclick="cerrarSesion()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;margin-left:8px;opacity:.7;" title="Cerrar sesión"><i class="fas fa-sign-out-alt"></i></button></div>';
+
+        // Bloquear o desbloquear cards
+        ['articulos','historial','estadisticas'].forEach(id => {
+            const card = document.getElementById('card-' + id);
+            if (!card) return;
+            if (esAdmin) {
+                card.classList.remove('card-locked');
+            } else {
+                card.classList.add('card-locked');
+            }
+        });
+    }
+
+    function cerrarSesion() {
+        usuarioActual = null;
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('sec-login').classList.add('active');
+    }
+
     // Soporte teclado físico para el PIN
     document.addEventListener('keydown', function(e) {
         if (document.getElementById('modal-pin').style.display !== 'flex') return;
@@ -759,5 +801,8 @@
         finalizarYRegistrarVenta(imprimir);
     }
 </script>
+</body>
+</html>
+
 </body>
 </html>
