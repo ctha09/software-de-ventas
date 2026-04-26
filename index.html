@@ -202,6 +202,83 @@
         }
 
         @media (max-width: 900px) { .caja-grid { grid-template-columns: 1fr; } }
+
+        /* ════════════════════════════════════════
+           PANTALLA DE SELECCIÓN DE USUARIO
+        ════════════════════════════════════════ */
+        #sec-login { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px; }
+        .login-brand { text-align: center; margin-bottom: 60px; }
+        .login-brand h1 { font-size: 4rem; font-weight: 900; letter-spacing: -3px; margin: 0; }
+        .login-brand p  { opacity: 0.4; font-size: 1.1rem; letter-spacing: 1px; margin-top: 8px; }
+
+        .user-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 860px; width: 100%; }
+
+        .user-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 24px; padding: 44px 20px 36px;
+            text-align: center; cursor: pointer;
+            transition: 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px); position: relative; overflow: hidden;
+        }
+        .user-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(56,189,248,0.06), transparent 70%);
+            opacity: 0; transition: opacity .3s;
+        }
+        .user-card:hover { transform: translateY(-10px); border-color: var(--accent); box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+        .user-card:hover::before { opacity: 1; }
+
+        .user-card.admin-card:hover { border-color: var(--warning); box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+        .user-card.admin-card::before { background: radial-gradient(circle at 50% 0%, rgba(245,158,11,0.07), transparent 70%); }
+
+        .user-avatar {
+            width: 72px; height: 72px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px; font-size: 1.8rem; font-weight: 800;
+            border: 2px solid var(--glass-border);
+        }
+        .avatar-v { background: rgba(56,189,248,0.12); color: var(--accent); border-color: rgba(56,189,248,0.25); }
+        .avatar-a { background: rgba(245,158,11,0.12); color: var(--warning); border-color: rgba(245,158,11,0.25); }
+
+        .user-card h3 { margin: 0 0 8px; font-size: 1.2rem; font-weight: 700; letter-spacing: .5px; }
+        .user-card p  { opacity: 0.45; font-size: 0.88rem; margin: 0; }
+
+        .user-badge {
+            display: inline-block; margin-top: 18px;
+            padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .badge-op  { background: rgba(56,189,248,0.12); color: var(--accent); }
+        .badge-adm { background: rgba(245,158,11,0.12); color: var(--warning); }
+
+        /* Modal PIN Admin */
+        .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 24px 0; }
+        .pin-dot  { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--glass-border); transition: .2s; }
+        .pin-dot.filled { background: var(--warning); border-color: var(--warning); }
+
+        .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .pin-key {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 12px; padding: 16px; font-size: 1.3rem; font-weight: 700;
+            cursor: pointer; transition: .15s; text-align: center;
+        }
+        .pin-key:hover  { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); color: var(--warning); }
+        .pin-key:active { transform: scale(.95); }
+        .pin-key-del { color: var(--danger); }
+        .pin-key-0   { grid-column: 2; }
+
+        .pin-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 8px; min-height: 20px; }
+        .pin-shake { animation: shake .35s ease; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 80%{transform:translateX(-4px)} }
+
+        /* Bloqueado */
+        #sec-bloqueado { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; }
+        .lock-icon { font-size: 4rem; color: var(--danger); opacity: .7; margin-bottom: 20px; }
+        #sec-bloqueado h2 { font-size: 1.5rem; font-weight: 700; margin: 0 0 10px; }
+        #sec-bloqueado p  { opacity: .5; margin: 0 0 30px; }
+
+        @media (max-width: 700px) { .user-grid { grid-template-columns: 1fr; } }
+
     </style>
 </head>
 <body>
@@ -210,8 +287,85 @@
 
 <main class="main-content">
 
+    <!-- ══ PANTALLA SELECCIÓN USUARIO ══ -->
+    <div id="sec-login" class="section active">
+        <div class="login-brand">
+            <h1>Gest<span style="color:var(--accent);">OK</span></h1>
+            <p>Seleccioná tu usuario para continuar</p>
+        </div>
+
+        <div class="user-grid">
+            <!-- Usuario V1 -->
+            <div class="user-card" onclick="entrarComoOperador('v1')">
+                <div class="user-avatar avatar-v">V1</div>
+                <h3>Usuario V1</h3>
+                <p>Acceso a ventas</p>
+                <span class="user-badge badge-op">Operador</span>
+            </div>
+
+            <!-- Usuario V2 -->
+            <div class="user-card" onclick="entrarComoOperador('v2')">
+                <div class="user-avatar avatar-v">V2</div>
+                <h3>Usuario V2</h3>
+                <p>Acceso a ventas</p>
+                <span class="user-badge badge-op">Operador</span>
+            </div>
+
+            <!-- Usuario A -->
+            <div class="user-card admin-card" onclick="abrirPinAdmin()">
+                <div class="user-avatar avatar-a">A</div>
+                <h3>Usuario A</h3>
+                <p>Acceso completo al sistema</p>
+                <span class="user-badge badge-adm"><i class="fas fa-lock" style="font-size:10px;"></i> Administrador</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ PANTALLA BLOQUEADA ══ -->
+    <div id="sec-bloqueado" class="section">
+        <i class="fas fa-lock lock-icon"></i>
+        <h2>Acceso restringido</h2>
+        <p>Solo el Usuario A tiene permiso a esta información.</p>
+        <button class="btn-back" onclick="verSeccion('dashboard')" style="margin:0;">
+            <i class="fas fa-arrow-left"></i> Volver al inicio
+        </button>
+    </div>
+
+    <!-- ══ MODAL PIN ADMIN ══ -->
+    <div id="modal-pin" class="modal-overlay">
+        <div class="modal-window" style="max-width:340px; text-align:center;">
+            <div style="font-size:2rem; margin-bottom:8px;">🔐</div>
+            <h3 style="margin:0 0 4px; font-size:18px; font-weight:600;">Usuario A</h3>
+            <p style="opacity:.5; font-size:13px; margin:0 0 4px;">Ingresá tu PIN de acceso</p>
+
+            <div class="pin-dots" id="pin-dots">
+                <div class="pin-dot" id="dot-0"></div>
+                <div class="pin-dot" id="dot-1"></div>
+                <div class="pin-dot" id="dot-2"></div>
+                <div class="pin-dot" id="dot-3"></div>
+            </div>
+
+            <div class="pin-pad">
+                <div class="pin-key" onclick="pinPresionar('1')">1</div>
+                <div class="pin-key" onclick="pinPresionar('2')">2</div>
+                <div class="pin-key" onclick="pinPresionar('3')">3</div>
+                <div class="pin-key" onclick="pinPresionar('4')">4</div>
+                <div class="pin-key" onclick="pinPresionar('5')">5</div>
+                <div class="pin-key" onclick="pinPresionar('6')">6</div>
+                <div class="pin-key" onclick="pinPresionar('7')">7</div>
+                <div class="pin-key" onclick="pinPresionar('8')">8</div>
+                <div class="pin-key" onclick="pinPresionar('9')">9</div>
+                <div class="pin-key pin-key-del" onclick="pinBorrar()"><i class="fas fa-delete-left"></i></div>
+                <div class="pin-key pin-key-0" onclick="pinPresionar('0')">0</div>
+            </div>
+
+            <div class="pin-error" id="pin-error"></div>
+            <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarPinAdmin()">CANCELAR</button>
+        </div>
+    </div>
+
     <!-- ══ DASHBOARD ══ -->
-    <div id="sec-dashboard" class="section active">
+    <div id="sec-dashboard" class="section">
         <div style="text-align:center; margin-bottom:70px; margin-top:50px;">
             <h1 style="font-size:4rem; font-weight:900; letter-spacing:-3px; margin:0;">
                 Gest<span style="color:var(--accent);">OK</span>
@@ -484,7 +638,23 @@
 <script src="script.js"></script>
 
 <script>
+    // ── ESTADO DE SESIÓN ──
+    let usuarioActual = null; // null | 'v1' | 'v2' | 'admin'
+    const PIN_ADMIN   = '1234';
+    let pinIngresado  = '';
+
+    // Secciones que requieren ser admin
+    const SOLO_ADMIN = ['articulos', 'historial', 'estadisticas'];
+
+    // ── NAVEGACIÓN CON CONTROL DE ACCESO ──
     function verSeccion(id) {
+        // Si intenta entrar a sección restringida sin ser admin
+        if (SOLO_ADMIN.includes(id) && usuarioActual !== 'admin') {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById('sec-bloqueado').classList.add('active');
+            return;
+        }
+
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('sec-' + id).classList.add('active');
 
@@ -493,6 +663,68 @@
         if (id === 'estadisticas') { document.getElementById('filtro-mes-estadistica').value = new Date().toISOString().substring(0,7); cargarEstadisticas(); }
     }
 
+    // ── OPERADORES V1 / V2 ──
+    function entrarComoOperador(usuario) {
+        usuarioActual = usuario;
+        verSeccion('dashboard');
+    }
+
+    // ── PIN ADMIN ──
+    function abrirPinAdmin() {
+        pinIngresado = '';
+        actualizarDots();
+        document.getElementById('pin-error').textContent = '';
+        document.getElementById('modal-pin').style.display = 'flex';
+    }
+
+    function cerrarPinAdmin() {
+        pinIngresado = '';
+        actualizarDots();
+        document.getElementById('modal-pin').style.display = 'none';
+    }
+
+    function pinPresionar(digito) {
+        if (pinIngresado.length >= 4) return;
+        pinIngresado += digito;
+        actualizarDots();
+        if (pinIngresado.length === 4) verificarPin();
+    }
+
+    function pinBorrar() {
+        pinIngresado = pinIngresado.slice(0, -1);
+        actualizarDots();
+        document.getElementById('pin-error').textContent = '';
+    }
+
+    function actualizarDots() {
+        for (let i = 0; i < 4; i++) {
+            document.getElementById('dot-' + i).classList.toggle('filled', i < pinIngresado.length);
+        }
+    }
+
+    function verificarPin() {
+        if (pinIngresado === PIN_ADMIN) {
+            usuarioActual = 'admin';
+            cerrarPinAdmin();
+            verSeccion('dashboard');
+        } else {
+            document.getElementById('pin-error').textContent = 'PIN incorrecto. Intentá de nuevo.';
+            const dots = document.getElementById('pin-dots');
+            dots.classList.remove('pin-shake');
+            void dots.offsetWidth; // reflow para reiniciar animacion
+            dots.classList.add('pin-shake');
+            setTimeout(() => { pinIngresado = ''; actualizarDots(); }, 600);
+        }
+    }
+
+    // Soporte teclado físico para el PIN
+    document.addEventListener('keydown', function(e) {
+        if (document.getElementById('modal-pin').style.display !== 'flex') return;
+        if (e.key >= '0' && e.key <= '9') pinPresionar(e.key);
+        if (e.key === 'Backspace') pinBorrar();
+    });
+
+    
     function seleccionarMetodo(el, valor) {
         document.querySelectorAll('.meth-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
