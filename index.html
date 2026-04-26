@@ -335,7 +335,7 @@
                 <button class="cobrar-btn" id="cobrar-btn" onclick="abrirModalCobro()" disabled>
                     <i class="fas fa-check-circle"></i> COBRAR
                 </button>
-                <button class="btn btn-print" style="margin-top:0;" onclick="abrirModalCobro(true)">
+                <button class="btn btn-print" style="margin-top:0;" onclick="abrirModalCobroImprimir()">
                     <i class="fas fa-print"></i> Cobrar e imprimir ticket
                 </button>
             </aside>
@@ -411,6 +411,7 @@
     <div id="modal-cobro" class="modal-overlay">
         <div class="modal-window">
             <h2 style="margin-top:0; text-align:center; font-size:18px; font-weight:500; color:var(--muted);">Cerrar venta</h2>
+            <input type="hidden" id="modal-imprimir-flag" value="no">
             <div class="modal-cobro-total" id="cobro-total-display">$ 0</div>
 
             <input type="number" id="pago-recibido" class="modal-recibido"
@@ -421,10 +422,10 @@
                 <div class="vuelto-amount" id="cobro-vuelto-display">$ 0</div>
             </div>
 
-            <button class="cobrar-btn" onclick="finalizarYRegistrarVenta(false)" style="margin-bottom:10px;">
+            <button class="cobrar-btn" onclick="confirmarCobro()" style="margin-bottom:10px;">
                 <i class="fas fa-check"></i> CONFIRMAR COBRO
             </button>
-            <button class="btn btn-print" onclick="finalizarYRegistrarVenta(true)" style="margin-bottom:10px;">
+            <button class="btn btn-print" onclick="confirmarCobro()" style="margin-bottom:10px;">
                 <i class="fas fa-print"></i> Cobrar e imprimir
             </button>
             <button class="btn btn-clear" onclick="cerrarModalCobro()">CANCELAR</button>
@@ -483,8 +484,6 @@
 <script src="script.js"></script>
 
 <script>
-    let _debeImprimir = false;
-
     function verSeccion(id) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('sec-' + id).classList.add('active');
@@ -500,22 +499,33 @@
         document.getElementById('tipo-pago').value = valor;
     }
 
-    function abrirModalCobro(imprimir = false) {
+    // Abre modal SIN imprimir (boton verde COBRAR)
+    function abrirModalCobro() {
         if (carritoVentas.length === 0) return;
-        _debeImprimir = imprimir;
-        document.getElementById('cobro-total-display').innerText = `$ ${totalVentaActual.toLocaleString('es-AR')}`;
+        document.getElementById('modal-imprimir-flag').value = 'no';
+        document.getElementById('cobro-total-display').innerText = '$ ' + totalVentaActual.toLocaleString('es-AR');
         document.getElementById('pago-recibido').value = '';
         document.getElementById('cobro-vuelto-display').innerText = '$ 0';
         document.getElementById('modal-cobro').style.display = 'flex';
         setTimeout(() => document.getElementById('pago-recibido').focus(), 150);
     }
 
-    /* Override finalizarYRegistrarVenta para capturar el flag de impresión */
-    const _origFinalizar = window.finalizarYRegistrarVenta;
-    window.finalizarYRegistrarVenta = function(imprimir) {
-        const flag = imprimir !== undefined ? imprimir : _debeImprimir;
-        if (_origFinalizar) _origFinalizar(flag);
-    };
+    // Abre modal CON impresion (boton azul Cobrar e imprimir)
+    function abrirModalCobroImprimir() {
+        if (carritoVentas.length === 0) return;
+        document.getElementById('modal-imprimir-flag').value = 'si';
+        document.getElementById('cobro-total-display').innerText = '$ ' + totalVentaActual.toLocaleString('es-AR');
+        document.getElementById('pago-recibido').value = '';
+        document.getElementById('cobro-vuelto-display').innerText = '$ 0';
+        document.getElementById('modal-cobro').style.display = 'flex';
+        setTimeout(() => document.getElementById('pago-recibido').focus(), 150);
+    }
+
+    // Llamado desde los botones dentro del modal
+    function confirmarCobro() {
+        const imprimir = document.getElementById('modal-imprimir-flag').value === 'si';
+        finalizarYRegistrarVenta(imprimir);
+    }
 </script>
 </body>
 </html>
