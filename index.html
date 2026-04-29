@@ -550,17 +550,17 @@
         <p>Seleccioná tu usuario para continuar</p>
     </div>
     <div class="user-grid">
-        <div class="user-card" onclick="entrarComoOperador('v1')">
+        <div class="user-card" onclick="abrirPinUsuario('v1')">
             <div class="u-avatar av-op">V1</div>
             <h3>Usuario V1</h3>
             <p class="sub">Acceso solo a ventas</p>
-            <span class="u-badge badge-op">Operador</span>
+            <span class="u-badge badge-op"><i class="fas fa-lock" style="font-size:9px;"></i> Operador</span>
         </div>
-        <div class="user-card" onclick="entrarComoOperador('v2')">
+        <div class="user-card" onclick="abrirPinUsuario('v2')">
             <div class="u-avatar av-op">V2</div>
             <h3>Usuario V2</h3>
             <p class="sub">Acceso solo a ventas</p>
-            <span class="u-badge badge-op">Operador</span>
+            <span class="u-badge badge-op"><i class="fas fa-lock" style="font-size:9px;"></i> Operador</span>
         </div>
         <div class="user-card admin" onclick="abrirPinAdmin()">
             <div class="u-avatar av-adm">A</div>
@@ -958,13 +958,15 @@
 <div id="modal-pin" class="modal-overlay">
     <div class="modal-window pin-modal-inner">
         <div style="font-size:2rem;margin-bottom:6px;">🔐</div>
-        <h3 style="font-size:17px;font-weight:600;margin-bottom:4px;">Usuario A</h3>
+        <h3 style="font-size:17px;font-weight:600;margin-bottom:4px;" id="pin-modal-titulo">Usuario A</h3>
         <p style="opacity:.45;font-size:13px;">Ingresá tu PIN de acceso</p>
         <div class="pin-dots" id="pin-dots">
             <div class="pin-dot" id="dot-0"></div>
             <div class="pin-dot" id="dot-1"></div>
             <div class="pin-dot" id="dot-2"></div>
             <div class="pin-dot" id="dot-3"></div>
+            <div class="pin-dot" id="dot-4"></div>
+            <div class="pin-dot" id="dot-5"></div>
         </div>
         <div class="pin-pad">
             <div class="pin-key" onclick="pinPresionar('1')">1</div>
@@ -1007,9 +1009,12 @@
 
 <script>
     // ══ ESTADO DE SESIÓN ══
-    let usuarioActual = null;
-    const PIN_ADMIN  = '1234';
-    let pinIngresado = '';
+    let usuarioActual    = null; // null | 'v1' | 'v2' | 'admin'
+    let pinIngresado     = '';
+    let usuarioPinActivo = null; // qué usuario está ingresando el PIN
+
+    const PINS = { 'v1': '031223', 'v2': '031223', 'admin': '1234' };
+    const NOMBRES = { 'v1': 'Usuario V1', 'v2': 'Usuario V2', 'admin': 'Usuario A' };
     const SOLO_ADMIN = ['articulos','historial','estadisticas'];
 
     // ══ NAVEGACIÓN ══
@@ -1030,29 +1035,27 @@
     }
 
     // ══ USUARIOS OPERADORES ══
-    function entrarComoOperador(usuario) {
-        usuarioActual = usuario;
-        _actualizarDashboard();
-        _mostrarSeccion('dashboard');
-    }
-
-    // ══ PIN ADMIN ══
-    function abrirPinAdmin() {
+    // Abre el modal PIN para cualquier usuario (v1, v2 o admin)
+    function abrirPinUsuario(usuario) {
+        usuarioPinActivo = usuario;
         pinIngresado = '';
         _actualizarDots();
         document.getElementById('pin-error').textContent = '';
+        const titulo = document.getElementById('pin-modal-titulo');
+        if (titulo) titulo.textContent = NOMBRES[usuario] || usuario;
         document.getElementById('modal-pin').style.display = 'flex';
     }
+    function abrirPinAdmin() { abrirPinUsuario('admin'); }
     function cerrarPinAdmin() {
         pinIngresado = '';
         _actualizarDots();
         document.getElementById('modal-pin').style.display = 'none';
     }
     function pinPresionar(d) {
-        if (pinIngresado.length >= 4) return;
+        if (pinIngresado.length >= 6) return;
         pinIngresado += d;
         _actualizarDots();
-        if (pinIngresado.length === 4) _verificarPin();
+        if (pinIngresado.length === 6) _verificarPin();
     }
     function pinBorrar() {
         pinIngresado = pinIngresado.slice(0,-1);
@@ -1060,12 +1063,15 @@
         document.getElementById('pin-error').textContent = '';
     }
     function _actualizarDots() {
-        for (let i = 0; i < 4; i++)
-            document.getElementById('dot-'+i).classList.toggle('filled', i < pinIngresado.length);
+        for (let i = 0; i < 6; i++) {
+            const dot = document.getElementById('dot-' + i);
+            if (dot) dot.classList.toggle('filled', i < pinIngresado.length);
+        }
     }
     function _verificarPin() {
-        if (pinIngresado === PIN_ADMIN) {
-            usuarioActual = 'admin';
+        const pinCorrecto = PINS[usuarioPinActivo];
+        if (pinIngresado === pinCorrecto) {
+            usuarioActual = usuarioPinActivo;
             cerrarPinAdmin();
             _actualizarDashboard();
             _mostrarSeccion('dashboard');
