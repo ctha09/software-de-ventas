@@ -884,8 +884,12 @@
 ══════════════════════════════════════ -->
 <section id="sec-estadisticas" class="section">
     <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
+
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
-        <h1>Estadísticas de Ventas</h1>
+        <div>
+            <h1 style="margin:0;">Estadísticas de Ventas</h1>
+            <p style="opacity:.45;font-size:13px;margin:4px 0 0;">Rendimiento por vendedor e histórico de ventas</p>
+        </div>
         <div style="display:flex;gap:10px;">
             <select id="tipo-grafica" class="form-input" style="width:auto;margin:0;" onchange="cargarEstadisticas()">
                 <option value="diaria">Gráfica Diaria</option>
@@ -894,9 +898,22 @@
             <input type="month" id="filtro-mes-estadistica" class="form-input" style="width:auto;margin:0;" onchange="cargarEstadisticas()">
         </div>
     </div>
-    <div style="background:rgba(255,255,255,.03);padding:28px;border-radius:22px;min-height:420px;border:1px solid var(--border);">
-        <canvas id="graficoGeneral" height="120"></canvas>
+
+    <!-- Gráfico general -->
+    <div style="background:rgba(255,255,255,.03);padding:28px;border-radius:22px;min-height:320px;border:1px solid var(--glass-border);margin-bottom:28px;">
+        <canvas id="graficoGeneral" height="100"></canvas>
     </div>
+
+    <!-- Desglose por vendedor -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+        <i class="fas fa-users" style="color:var(--accent);font-size:18px;"></i>
+        <h2 style="margin:0;font-size:18px;font-weight:600;">Rendimiento por Vendedor</h2>
+        <span style="font-size:12px;opacity:.4;margin-left:4px;">(histórico total)</span>
+    </div>
+    <div id="tabla-vendedores">
+        <p style="opacity:.4;text-align:center;padding:30px;">Cargando datos...</p>
+    </div>
+
 </section>
 
 <!-- ══════════════════════════════════════
