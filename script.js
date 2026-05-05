@@ -231,10 +231,10 @@ async function finalizarYRegistrarVenta(debeImprimir) {
 
     const metodoPago = document.getElementById('tipo-pago').value;
     // Obtener nombre del vendedor desde el usuario actual
-    const nombresVendedor = { 'v1': 'Usuario V1', 'v2': 'Usuario V2', 'admin': 'Usuario A' };
-    const vendedorActual  = (typeof usuarioActual !== 'undefined' && usuarioActual)
-        ? (nombresVendedor[usuarioActual] || usuarioActual)
-        : 'Usuario V1';
+    // Usar directamente el nombre del usuario actual
+    const vendedorActual = (typeof usuarioActual !== 'undefined' && usuarioActual)
+        ? (usuarioActual.charAt(0).toUpperCase() + usuarioActual.slice(1))
+        : 'Vendedor';
 
     const ticket = {
         fecha: new Date().toLocaleString('es-AR'),
@@ -632,9 +632,9 @@ function renderizarTablaVendedores(porVendedor) {
 
     // Colores por usuario
     const colores = {
-        'Usuario V1': { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8' },
-        'Usuario V2': { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7' },
-        'Usuario A':  { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b' },
+        'Sandra':  { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8' },
+        'Tamara':  { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7' },
+        'Fabian':  { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b' },
     };
     const colorDefault = { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', color: '#94a3b8' };
 
