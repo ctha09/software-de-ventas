@@ -230,12 +230,19 @@ async function finalizarYRegistrarVenta(debeImprimir) {
     if (carritoVentas.length === 0) return;
 
     const metodoPago = document.getElementById('tipo-pago').value;
+    // Obtener nombre del vendedor desde el usuario actual
+    const nombresVendedor = { 'v1': 'Usuario V1', 'v2': 'Usuario V2', 'admin': 'Usuario A' };
+    const vendedorActual  = (typeof usuarioActual !== 'undefined' && usuarioActual)
+        ? (nombresVendedor[usuarioActual] || usuarioActual)
+        : 'Usuario V1';
+
     const ticket = {
         fecha: new Date().toLocaleString('es-AR'),
         tipo_comprobante: document.getElementById('tipo-doc').value,
         metodo_pago: metodoPago,
         items: JSON.parse(JSON.stringify(carritoVentas)), // copia limpia
-        total: totalVentaActual
+        total: totalVentaActual,
+        vendedor: vendedorActual
     };
 
     try {
@@ -256,10 +263,21 @@ async function finalizarYRegistrarVenta(debeImprimir) {
             }
         }
 
+        // Generar Factura C en ARCA
+        let datosFactura = null;
+        try {
+            mostrarToast('📄 Generando Factura C en ARCA...');
+            datosFactura = await generarFacturaARCA(ticket);
+            ticket.cae            = datosFactura.cae;
+            ticket.vencimientoCAE = datosFactura.vencimientoCAE;
+            ticket.nroComprobante = datosFactura.nroComprobante;
+            mostrarToast(`✅ Factura C N° ${datosFactura.nroComprobante} — CAE: ${datosFactura.cae}`);
+        } catch (errARCA) {
+            mostrarToast('⚠️ Venta registrada pero sin CAE: ' + errARCA.message);
+        }
+
         if (debeImprimir) {
             generarTicketImpresion(ticket);
-            // Quitar foco de todos los inputs antes de imprimir
-            // para que la impresora POS no dispare el lector de barras
             setTimeout(() => {
                 document.activeElement && document.activeElement.blur();
                 document.querySelectorAll('input').forEach(i => i.blur());
@@ -282,7 +300,7 @@ async function finalizarYRegistrarVenta(debeImprimir) {
 function generarTicketImpresion(t) {
     const container = document.getElementById('ticket-print');
 
-    // Agrupar ítems por código para evitar duplicados
+    // Agrupar items por codigo para evitar duplicados
     const agrupados = {};
     t.items.forEach(i => {
         const key = String(i.cod);
@@ -293,54 +311,85 @@ function generarTicketImpresion(t) {
         }
     });
 
-    const linea = '--------------------------------';
-    let itemsHtml = '';
+    // Separador adaptado a 80mm (~42 caracteres Courier 9pt)
+    const SEP = '..........................................';
+
+    let filas = '';
     Object.values(agrupados).forEach(i => {
         const cant    = Number.isInteger(i.cant) ? i.cant : i.cant.toFixed(3);
-        const subtotal = Math.ceil(i.pr * i.cant);
-        // Nombre del producto (truncar si es muy largo)
-        const nombre  = i.det.length > 28 ? i.det.substring(0, 28) : i.det;
-        itemsHtml += `
+        const subtotal = '$' + Math.ceil(i.pr * i.cant).toLocaleString('es-AR');
+        const nombre  = i.det.length > 30 ? i.det.substring(0, 30) : i.det;
+        filas += `
             <tr>
-                <td colspan="2" style="padding-top:6px; font-weight:bold; font-size:10pt;">${nombre}</td>
+                <td colspan="2" style="padding-top:5px; font-weight:bold;">${nombre}</td>
             </tr>
             <tr>
-                <td style="font-size:9pt; color:#444;">${cant} x $${i.pr.toLocaleString('es-AR')}</td>
-                <td style="text-align:right; font-weight:bold; font-size:10pt;">$${subtotal.toLocaleString('es-AR')}</td>
+                <td style="font-size:8.5pt; color:#333;">${cant} x $${parseFloat(i.pr).toLocaleString('es-AR')}</td>
+                <td style="text-align:right; font-weight:bold;">${subtotal}</td>
             </tr>`;
     });
 
-    // Fecha formateada
-    const ahora  = new Date();
-    const fecha  = t.fecha || ahora.toLocaleString('es-AR');
-    const vendedor = t.vendedor ? `<p style="margin:2px 0; font-size:9pt;">Vendedor: ${t.vendedor}</p>` : '';
+    const fecha    = t.fecha || new Date().toLocaleString('es-AR');
+    const vendedor = t.vendedor ? `<div style="font-size:8pt; margin-top:2px;">Vendedor: ${t.vendedor}</div>` : '';
+    const totalStr = '$' + (t.total || 0).toLocaleString('es-AR');
 
     container.innerHTML = `
-        <div style="text-align:center; margin-bottom:6px;">
-            <div style="font-size:16pt; font-weight:900; letter-spacing:1px;">GestOK</div>
-            <div style="font-size:9pt;">${t.tipo_comprobante || 'Ticket No Fiscal'}</div>
-            <div style="font-size:8pt; color:#555;">${fecha}</div>
-            ${vendedor}
+        <div style="
+            width: 100%;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+            color: black;
+            background: white;
+            box-sizing: border-box;
+        ">
+            <!-- ENCABEZADO -->
+            <div style="text-align:center; margin-bottom:6px;">
+                <div style="font-size:15pt; font-weight:900; letter-spacing:2px;">GestOK</div>
+                <div style="font-size:8.5pt;">${t.tipo_comprobante || 'Ticket No Fiscal'}</div>
+                <div style="font-size:8pt; color:#444;">${fecha}</div>
+                ${vendedor}
+            </div>
+
+            <div style="border-top:1px dashed #000; margin:4px 0;"></div>
+
+            <!-- ITEMS -->
+            <table style="width:100%; border-collapse:collapse; font-size:9pt; table-layout:fixed;">
+                <colgroup>
+                    <col style="width:65%;">
+                    <col style="width:35%;">
+                </colgroup>
+                ${filas}
+            </table>
+
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+
+            <!-- TOTAL -->
+            <table style="width:100%; border-collapse:collapse; font-size:12pt; font-weight:900;">
+                <tr>
+                    <td style="padding:2px 0;">TOTAL:</td>
+                    <td style="text-align:right; padding:2px 0;">${totalStr}</td>
+                </tr>
+            </table>
+
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+
+            <!-- CAE -->
+            ${t.cae ? `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="font-size:8pt; text-align:center;">
+                <div style="font-weight:bold;">CAE: ${t.cae}</div>
+                <div>Vto: ${t.vencimientoCAE || ''}</div>
+                <div>Comp. N°: ${String(t.nroComprobante || '').padStart(8,'0')}</div>
+                <div>Pto.Vta: 00003 | CUIT: 20-32850879-7</div>
+            </div>` : ''}
+
+            <!-- PIE -->
+            <div style="text-align:center; font-size:8.5pt; margin-top:4px;">${t.metodo_pago || ''}</div>
+            <div style="text-align:center; font-size:8pt; color:#555; margin-top:6px;">¡Gracias por su compra!</div>
+
+            <!-- Espacio final para corte -->
+            <div style="margin-top:16px;">&nbsp;</div>
         </div>
-        <div style="border-top:1px dashed #000; margin:4px 0;"></div>
-        <table style="width:100%; border-collapse:collapse; font-family:'Courier New',monospace;">
-            ${itemsHtml}
-        </table>
-        <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-        <table style="width:100%; font-size:13pt; font-weight:900;">
-            <tr>
-                <td>TOTAL:</td>
-                <td style="text-align:right;">$${t.total.toLocaleString('es-AR')}</td>
-            </tr>
-        </table>
-        <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-        <div style="text-align:center; font-size:9pt; color:#555; margin-top:6px;">
-            ${t.metodo_pago}
-        </div>
-        <div style="text-align:center; font-size:8pt; color:#888; margin-top:8px;">
-            ¡Gracias por su compra!
-        </div>
-        <br><br>
     `;
 }
 
@@ -388,13 +437,18 @@ async function cargarHistorial() {
 // 6. ESTADÍSTICAS
 // ─────────────────────────────────────────
 async function cargarEstadisticas() {
-    const tipo = document.getElementById('tipo-grafica').value;
+    const tipo         = document.getElementById('tipo-grafica').value;
     const mesSeleccionado = document.getElementById('filtro-mes-estadistica').value;
     const [anioSel, mesSel] = mesSeleccionado.split('-');
 
     try {
         const snapshot = await window.fs.getDocs(window.fs.collection(window.db, "ventas"));
+
+        // Datos globales para el gráfico
         let datosAgrupados = {};
+
+        // Datos por vendedor: { 'Usuario V1': { ventas: 0, total: 0 }, ... }
+        let porVendedor = {};
 
         snapshot.forEach(doc => {
             const data = doc.data();
@@ -403,7 +457,14 @@ async function cargarEstadisticas() {
             const itemMes  = m.padStart(2,'0');
             const itemAnio = y;
             const itemDia  = d.padStart(2,'0');
+            const vendedor = data.vendedor || 'Sin especificar';
 
+            // Acumular por vendedor (sin filtro de mes — muestra histórico total)
+            if (!porVendedor[vendedor]) porVendedor[vendedor] = { ventas: 0, total: 0 };
+            porVendedor[vendedor].ventas++;
+            porVendedor[vendedor].total += data.total || 0;
+
+            // Gráfico filtrado por mes/año seleccionado
             if (tipo === 'diaria') {
                 if (itemAnio === anioSel && itemMes === mesSel) {
                     const etiqueta = `${itemDia}/${itemMes}`;
@@ -420,9 +481,11 @@ async function cargarEstadisticas() {
         const etiquetas = Object.keys(datosAgrupados).sort();
         const valores   = etiquetas.map(k => datosAgrupados[k]);
         renderizarGraficoGeneral(etiquetas, valores, tipo === 'diaria' ? 'Ventas del Mes ($)' : 'Ventas del Año ($)');
+        renderizarTablaVendedores(porVendedor);
 
     } catch (e) { console.error(e); }
 }
+
 
 function renderizarGraficoGeneral(labels, data, titulo) {
     const ctx = document.getElementById('graficoGeneral').getContext('2d');
@@ -548,3 +611,139 @@ function abrirModalProducto()  { document.getElementById('modal-producto').style
 // INICIO
 // ─────────────────────────────────────────
 setTimeout(inicializar, 1000);
+
+// ─────────────────────────────────────────
+// TABLA DE RENDIMIENTO POR VENDEDOR
+// ─────────────────────────────────────────
+function renderizarTablaVendedores(porVendedor) {
+    const container = document.getElementById('tabla-vendedores');
+    if (!container) return;
+
+    const vendedores = Object.entries(porVendedor)
+        .sort((a, b) => b[1].total - a[1].total);
+
+    if (vendedores.length === 0) {
+        container.innerHTML = '<p style="opacity:.4; text-align:center; padding:20px;">Sin datos de ventas aún.</p>';
+        return;
+    }
+
+    const totalGeneral = vendedores.reduce((s, [, v]) => s + v.total, 0);
+    const totalVentas  = vendedores.reduce((s, [, v]) => s + v.ventas, 0);
+
+    // Colores por usuario
+    const colores = {
+        'Usuario V1': { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8' },
+        'Usuario V2': { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7' },
+        'Usuario A':  { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b' },
+    };
+    const colorDefault = { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', color: '#94a3b8' };
+
+    let html = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:24px;">
+            ${vendedores.map(([nombre, datos]) => {
+                const c = colores[nombre] || colorDefault;
+                const pct = totalGeneral > 0 ? ((datos.total / totalGeneral) * 100).toFixed(1) : 0;
+                return `
+                <div style="background:${c.bg}; border:1px solid ${c.border}; border-radius:16px; padding:20px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                        <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0;"></div>
+                        <span style="font-weight:700; font-size:14px;">${nombre}</span>
+                    </div>
+                    <div style="margin-bottom:10px;">
+                        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Monto vendido</div>
+                        <div style="font-size:26px;font-weight:900;color:${c.color};">$${datos.total.toLocaleString('es-AR')}</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+                        <div>
+                            <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Tickets</div>
+                            <div style="font-size:18px;font-weight:700;">${datos.ventas}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Ticket promedio</div>
+                            <div style="font-size:18px;font-weight:700;">$${datos.ventas > 0 ? Math.round(datos.total / datos.ventas).toLocaleString('es-AR') : 0}</div>
+                        </div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.2);border-radius:6px;height:6px;overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:${c.color};border-radius:6px;transition:.5s;"></div>
+                    </div>
+                    <div style="font-size:11px;color:#64748b;margin-top:5px;text-align:right;">${pct}% del total</div>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <table class="v-table">
+            <thead>
+                <tr>
+                    <th>Vendedor</th>
+                    <th style="text-align:center;">Tickets cerrados</th>
+                    <th style="text-align:right;">Ticket promedio</th>
+                    <th style="text-align:right;">Total vendido</th>
+                    <th style="text-align:right;">Participación</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${vendedores.map(([nombre, datos]) => {
+                    const c   = colores[nombre] || colorDefault;
+                    const pct = totalGeneral > 0 ? ((datos.total / totalGeneral) * 100).toFixed(1) : 0;
+                    const avg = datos.ventas > 0 ? Math.round(datos.total / datos.ventas) : 0;
+                    return `<tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="width:8px;height:8px;border-radius:50%;background:${c.color};"></div>
+                                <span style="font-weight:600;">${nombre}</span>
+                            </div>
+                        </td>
+                        <td style="text-align:center;font-weight:700;">${datos.ventas}</td>
+                        <td style="text-align:right;color:#94a3b8;">$${avg.toLocaleString('es-AR')}</td>
+                        <td style="text-align:right;font-weight:800;color:${c.color};">$${datos.total.toLocaleString('es-AR')}</td>
+                        <td style="text-align:right;">
+                            <span style="background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">${pct}%</span>
+                        </td>
+                    </tr>`;
+                }).join('')}
+                <tr style="border-top:2px solid rgba(255,255,255,0.1);">
+                    <td style="font-weight:700;opacity:.6;">TOTAL</td>
+                    <td style="text-align:center;font-weight:900;">${totalVentas}</td>
+                    <td style="text-align:right;color:#94a3b8;">$${totalVentas > 0 ? Math.round(totalGeneral / totalVentas).toLocaleString('es-AR') : 0}</td>
+                    <td style="text-align:right;font-weight:900;font-size:15px;">$${totalGeneral.toLocaleString('es-AR')}</td>
+                    <td style="text-align:right;">
+                        <span style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">100%</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = html;
+}
+
+// ─────────────────────────────────────────
+// FACTURACIÓN ARCA — INTEGRACIÓN DIRECTA
+// ─────────────────────────────────────────
+const ARCA_SERVER = 'https://gestok-server-production.up.railway.app';
+
+async function generarFacturaARCA(ticket) {
+    try {
+        const response = await fetch(`${ARCA_SERVER}/facturar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                total:    ticket.total,
+                items:    ticket.items,
+                vendedor: ticket.vendedor || 'GestOK'
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Error del servidor ARCA');
+        }
+
+        const datos = await response.json();
+        return datos; // { cae, vencimientoCAE, nroComprobante, ptoVta, cuit }
+
+    } catch (e) {
+        console.error('Error ARCA:', e.message);
+        throw e;
+    }
+}
