@@ -568,24 +568,30 @@
         <p>Seleccioná tu usuario para continuar</p>
     </div>
     <div class="user-grid">
-        <div class="user-card" onclick="abrirPinUsuario('v1')">
-            <div class="u-avatar av-op">V1</div>
-            <h3>Usuario V1</h3>
+        <!-- Sandra — Vendedora -->
+        <div class="user-card" onclick="abrirPinUsuario('sandra')">
+            <div class="u-avatar av-op">S</div>
+            <h3>Sandra</h3>
             <p class="sub">Acceso solo a ventas</p>
-            <span class="u-badge badge-op"><i class="fas fa-lock" style="font-size:9px;"></i> Operador</span>
+            <span class="u-badge badge-op"><i class="fas fa-lock" style="font-size:9px;"></i> Vendedora</span>
         </div>
-        <div class="user-card" onclick="abrirPinUsuario('v2')">
-            <div class="u-avatar av-op">V2</div>
-            <h3>Usuario V2</h3>
-            <p class="sub">Acceso solo a ventas</p>
-            <span class="u-badge badge-op"><i class="fas fa-lock" style="font-size:9px;"></i> Operador</span>
-        </div>
-        <div class="user-card admin" onclick="abrirPinAdmin()">
-            <div class="u-avatar av-adm">A</div>
-            <h3>Usuario A</h3>
+
+        <!-- Tamara — Admin -->
+        <div class="user-card admin-card" onclick="abrirPinUsuario('tamara')">
+            <div class="u-avatar avatar-a">T</div>
+            <h3>Tamara</h3>
             <p class="sub">Acceso completo al sistema</p>
-            <span class="u-badge badge-adm"><i class="fas fa-lock" style="font-size:10px;"></i> Administrador</span>
+            <span class="u-badge badge-adm"><i class="fas fa-lock" style="font-size:9px;"></i> Administradora</span>
         </div>
+
+        <!-- Fabian — Admin -->
+        <div class="user-card admin-card" onclick="abrirPinUsuario('fabian')">
+            <div class="u-avatar avatar-a">F</div>
+            <h3>Fabian</h3>
+            <p class="sub">Acceso completo al sistema</p>
+            <span class="u-badge badge-adm"><i class="fas fa-lock" style="font-size:9px;"></i> Administrador</span>
+        </div>
+    </div>
     </div>
 </section>
 
@@ -1048,13 +1054,14 @@
     let pinIngresado     = '';
     let usuarioPinActivo = null; // qué usuario está ingresando el PIN
 
-    const PINS = { 'v1': '031223', 'v2': '031223', 'admin': '031223' };
-    const NOMBRES = { 'v1': 'Usuario V1', 'v2': 'Usuario V2', 'admin': 'Usuario A' };
+    const PINS = { 'sandra': '2026', 'tamara': '3101', 'fabian': '0887' };
+    const NOMBRES = { 'sandra': 'Sandra', 'tamara': 'Tamara', 'fabian': 'Fabian' };
     const SOLO_ADMIN = ['articulos','historial','estadisticas'];
+    const ADMINS = ['tamara','fabian'];
 
     // ══ NAVEGACIÓN ══
     function verSeccion(id) {
-        if (SOLO_ADMIN.includes(id) && usuarioActual !== 'admin') {
+        if (SOLO_ADMIN.includes(id) && !ADMINS.includes(usuarioActual)) {
             _mostrarSeccion('bloqueado');
             return;
         }
@@ -1087,10 +1094,12 @@
         document.getElementById('modal-pin').style.display = 'none';
     }
     function pinPresionar(d) {
-        if (pinIngresado.length >= 6) return;
+        const maxLen = PINS[usuarioPinActivo] ? PINS[usuarioPinActivo].length : 6;
+        if (pinIngresado.length >= maxLen) return;
         pinIngresado += d;
         _actualizarDots();
-        if (pinIngresado.length === 6) _verificarPin();
+        const pinLen = PINS[usuarioPinActivo] ? PINS[usuarioPinActivo].length : 4;
+        if (pinIngresado.length === pinLen) _verificarPin();
     }
     function pinBorrar() {
         pinIngresado = pinIngresado.slice(0,-1);
@@ -1098,9 +1107,12 @@
         document.getElementById('pin-error').textContent = '';
     }
     function _actualizarDots() {
+        const totalDots = PINS[usuarioPinActivo] ? PINS[usuarioPinActivo].length : 4;
         for (let i = 0; i < 6; i++) {
             const dot = document.getElementById('dot-' + i);
-            if (dot) dot.classList.toggle('filled', i < pinIngresado.length);
+            if (!dot) continue;
+            dot.style.display = i < totalDots ? '' : 'none';
+            dot.classList.toggle('filled', i < pinIngresado.length);
         }
     }
     function _verificarPin() {
