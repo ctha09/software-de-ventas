@@ -1134,10 +1134,8 @@
 
     // ══ DASHBOARD: chip de usuario y bloqueo de cards ══
     function _actualizarDashboard() {
-        const esAdmin = usuarioActual === 'admin';
-        const nombre  = usuarioActual === 'v1' ? 'Usuario V1'
-                      : usuarioActual === 'v2' ? 'Usuario V2'
-                      : 'Usuario A — Administrador';
+        const esAdmin = ADMINS.includes(usuarioActual);
+        const nombre  = NOMBRES[usuarioActual] || usuarioActual;
 
         document.getElementById('user-chip-wrap').innerHTML =
             `<div class="user-chip${esAdmin?' admin':''}">
