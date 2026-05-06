@@ -553,6 +553,23 @@
         }
         .btn-split-trigger:hover { background: rgba(56,189,248,0.18); transform: scale(1.02); }
 
+
+        /* ── MODO PRESUPUESTO ── */
+        .presupuesto-banner {
+            display: none;
+            background: rgba(245,158,11,0.12);
+            border: 1px solid rgba(245,158,11,0.35);
+            border-radius: 12px;
+            padding: 10px 18px;
+            margin-bottom: 16px;
+            color: var(--warning);
+            font-size: 13px;
+            font-weight: 600;
+            align-items: center;
+            gap: 10px;
+        }
+        .presupuesto-banner.visible { display: flex; }
+        .cobrar-btn.modo-presupuesto { background: var(--warning) !important; }
     </style>
 </head>
 <body>
@@ -700,10 +717,11 @@
         <aside class="pay-panel">
             <div class="pay-card">
                 <div class="pay-label">Tipo de comprobante</div>
-                <select id="tipo-doc" onchange="actualizarTablaVentas()">
+                <select id="tipo-doc" onchange="onTipoDocChange()">
                     <option value="Ticket No Fiscal">Ticket No Fiscal</option>
                     <option value="Factura C">Factura C</option>
                     <option value="Factura B">Factura B</option>
+                    <option value="Presupuesto">Presupuesto</option>
                 </select>
             </div>
             <div class="total-card">
@@ -943,7 +961,37 @@
 <!-- ══════════════════════════════════════
      MODAL COBRO
 ══════════════════════════════════════ -->
-<div id="modal-cobro" class="modal-overlay">
+    <!-- ══ MODAL PESO ══ -->
+    <div id="modal-peso" class="modal-overlay">
+        <div class="modal-window" style="max-width:360px; text-align:center;">
+            <div style="font-size:2.5rem; margin-bottom:8px;">⚖️</div>
+            <h3 style="margin:0 0 4px; font-size:18px;" id="modal-peso-nombre">Producto</h3>
+            <p style="opacity:.45; font-size:13px; margin:0 0 20px;" id="modal-peso-precio">$0/kg</p>
+            <div style="display:flex; gap:10px; margin-bottom:16px;">
+                <button id="btn-gramos" onclick="seleccionarUnidadPeso('g')"
+                    style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--accent);background:rgba(56,189,248,0.12);color:var(--accent);font-weight:700;cursor:pointer;font-size:14px;">
+                    Gramos (g)
+                </button>
+                <button id="btn-kilos" onclick="seleccionarUnidadPeso('kg')"
+                    style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--glass-border);background:var(--glass);color:var(--muted);font-weight:700;cursor:pointer;font-size:14px;">
+                    Kilos (kg)
+                </button>
+            </div>
+            <input type="number" id="input-peso" class="modal-recibido"
+                placeholder="Ej: 500" step="1" min="0" style="margin-bottom:8px;"
+                oninput="calcularPrecioSegunPeso()">
+            <div id="peso-precio-preview"
+                style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:14px;margin-bottom:18px;min-height:48px;">
+                <span style="color:var(--muted);font-size:13px;">Ingresá el peso para ver el precio</span>
+            </div>
+            <button class="cobrar-btn" onclick="confirmarPeso()" style="margin-bottom:10px;">
+                <i class="fas fa-plus"></i> AGREGAR AL CARRITO
+            </button>
+            <button class="btn btn-clear" onclick="cerrarModalPeso()">CANCELAR</button>
+        </div>
+    </div>
+
+    <div id="modal-cobro" class="modal-overlay">
     <div class="modal-window">
         <h2 style="text-align:center;font-size:17px;font-weight:500;color:var(--muted);margin-bottom:6px;">Cerrar venta</h2>
         <input type="hidden" id="modal-imprimir-flag" value="no">
@@ -969,10 +1017,17 @@
 <div id="modal-producto" class="modal-overlay">
     <div class="modal-window">
         <h3 style="margin-bottom:20px;">Nuevo Artículo</h3>
-        <input type="text"   id="nuevo-cod"   class="form-input" placeholder="Código">
-        <input type="text"   id="nuevo-det"   class="form-input" placeholder="Nombre">
-        <input type="number" id="nuevo-pr"    class="form-input" placeholder="Precio ($)">
-        <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock">
+        <input type="text"   id="nuevo-cod"   class="form-input" placeholder="Código de barras">
+        <input type="text"   id="nuevo-det"   class="form-input" placeholder="Nombre del producto">
+        <input type="number" id="nuevo-pr"    class="form-input" placeholder="Precio ($) — por kg si es a granel">
+        <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock (kg si es a granel)">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:14px; background:var(--glass); border-radius:10px; border:1px solid var(--glass-border);">
+            <input type="checkbox" id="nuevo-por-peso" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);">
+            <div>
+                <div style="font-weight:600; font-size:14px;">Producto por peso / a granel</div>
+                <div style="font-size:12px; opacity:.5; margin-top:2px;">Verduras, frutas, fiambres, etc. El precio es por kg.</div>
+            </div>
+        </div>
         <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
         <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalProducto()">VOLVER</button>
     </div>
@@ -985,9 +1040,16 @@
     <div class="modal-window">
         <h3 style="margin-bottom:20px;">Editar Artículo</h3>
         <input type="hidden" id="edit-id">
-        <input type="text"   id="edit-det"   class="form-input">
-        <input type="number" id="edit-pr"    class="form-input">
-        <input type="number" id="edit-stock" class="form-input">
+        <input type="text"   id="edit-det"   class="form-input" placeholder="Nombre">
+        <input type="number" id="edit-pr"    class="form-input" placeholder="Precio ($)">
+        <input type="number" id="edit-stock" class="form-input" placeholder="Stock">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:14px; background:var(--glass); border-radius:10px; border:1px solid var(--glass-border);">
+            <input type="checkbox" id="edit-por-peso" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);">
+            <div>
+                <div style="font-weight:600; font-size:14px;">Producto por peso / a granel</div>
+                <div style="font-size:12px; opacity:.5; margin-top:2px;">El precio es por kg.</div>
+            </div>
+        </div>
         <button class="btn btn-confirm" onclick="actualizarProductoEnFirebase()">ACTUALIZAR</button>
         <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalEditar()">SALIR</button>
     </div>
@@ -1174,6 +1236,25 @@
     });
 
     // ══ VENTAS ══
+    function onTipoDocChange() {
+        actualizarTablaVentas();
+        const esPresupuesto = document.getElementById('tipo-doc').value === 'Presupuesto';
+        const banner = document.getElementById('presupuesto-banner');
+        const btnCobrar = document.getElementById('cobrar-btn');
+        if (banner) {
+            banner.classList.toggle('visible', esPresupuesto);
+        }
+        if (btnCobrar) {
+            if (esPresupuesto) {
+                btnCobrar.innerHTML = '<i class="fas fa-file-invoice"></i> EMITIR PRESUPUESTO';
+                btnCobrar.classList.add('modo-presupuesto');
+            } else {
+                btnCobrar.innerHTML = '<i class="fas fa-check-circle"></i> COBRAR';
+                btnCobrar.classList.remove('modo-presupuesto');
+            }
+        }
+    }
+
     function seleccionarMetodo(el, valor) {
         document.querySelectorAll('.meth-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
