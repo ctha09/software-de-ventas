@@ -853,6 +853,49 @@
         </div>
     </div>
 
+    <!-- ══ MODAL SELECCIÓN USUARIO PANTALLA DIVIDIDA ══ -->
+    <div id="modal-split-user" class="modal-overlay">
+        <div class="modal-window" style="max-width:420px; text-align:center;">
+            <div style="font-size:2rem; margin-bottom:8px;">⚡</div>
+            <h3 style="margin:0 0 4px; font-size:18px; font-weight:600;">Pantalla dividida</h3>
+            <p style="opacity:.45; font-size:13px; margin:0 0 20px;">¿Con qué usuario querés compartir la pantalla?</p>
+
+            <div id="split-user-cards" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
+
+            <!-- PIN para el segundo usuario -->
+            <div id="split-pin-section" style="display:none;">
+                <div style="font-size:1.5rem; margin-bottom:6px;" id="split-pin-icon">🔐</div>
+                <p style="font-size:14px; font-weight:600; margin:0 0 4px;" id="split-pin-nombre"></p>
+                <p style="opacity:.45; font-size:12px; margin:0 0 16px;">Ingresá el PIN del segundo usuario</p>
+                <div class="pin-dots" id="split-pin-dots" style="justify-content:center;">
+                    <div class="pin-dot" id="split-dot-0"></div>
+                    <div class="pin-dot" id="split-dot-1"></div>
+                    <div class="pin-dot" id="split-dot-2"></div>
+                    <div class="pin-dot" id="split-dot-3"></div>
+                    <div class="pin-dot" id="split-dot-4"></div>
+                    <div class="pin-dot" id="split-dot-5"></div>
+                </div>
+                <div class="pin-pad" style="margin-top:16px;">
+                    <div class="pin-key" onclick="splitPinPresionar('1')">1</div>
+                    <div class="pin-key" onclick="splitPinPresionar('2')">2</div>
+                    <div class="pin-key" onclick="splitPinPresionar('3')">3</div>
+                    <div class="pin-key" onclick="splitPinPresionar('4')">4</div>
+                    <div class="pin-key" onclick="splitPinPresionar('5')">5</div>
+                    <div class="pin-key" onclick="splitPinPresionar('6')">6</div>
+                    <div class="pin-key" onclick="splitPinPresionar('7')">7</div>
+                    <div class="pin-key" onclick="splitPinPresionar('8')">8</div>
+                    <div class="pin-key" onclick="splitPinPresionar('9')">9</div>
+                    <div class="pin-key pin-key-del" onclick="splitPinBorrar()"><i class="fas fa-delete-left"></i></div>
+                    <div class="pin-key pin-key-0" onclick="splitPinPresionar('0')">0</div>
+                </div>
+                <div class="pin-error" id="split-pin-error"></div>
+                <button class="btn btn-clear" style="margin-top:12px;" onclick="splitVolverSeleccion()">← Volver</button>
+            </div>
+
+            <button class="btn btn-clear" id="split-cancelar-btn" onclick="cerrarModalSplitUser()" style="margin-top:4px;">CANCELAR</button>
+        </div>
+    </div>
+
     <!-- Modal cobro split -->
     <div id="modal-split-cobro" class="modal-overlay">
         <div class="modal-window" style="max-width:420px;">
@@ -1291,16 +1334,137 @@
     let splitTotales  = { 1: 0,  2: 0  };
 
     function entrarPantallaDividida() {
-        // Pasar el carrito actual de sec-ventas al panel 1
+        // Mostrar modal de selección de usuario para el segundo panel
+        abrirModalSplitUser();
+    }
+
+    // ── MODAL SELECCIÓN USUARIO SPLIT ──────────────────────────
+    let _splitUsuario2     = null;
+    let _splitPinIngresado = '';
+
+    function abrirModalSplitUser() {
+        _splitUsuario2     = null;
+        _splitPinIngresado = '';
+
+        // Generar cards de usuarios disponibles (todos excepto el actual)
+        const cards = document.getElementById('split-user-cards');
+        cards.innerHTML = '';
+
+        const colores = {
+            'sandra': { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8', letra: 'S' },
+            'tamara': { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b', letra: 'T' },
+            'fabian': { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7', letra: 'F' },
+        };
+
+        Object.keys(PINS).forEach(user => {
+            if (user === usuarioActual) return; // no mostrarse a sí mismo
+            const c      = colores[user] || { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', color: '#94a3b8', letra: user[0].toUpperCase() };
+            const nombre = NOMBRES[user] || user;
+            const card   = document.createElement('div');
+            card.style.cssText = `background:${c.bg};border:1.5px solid ${c.border};border-radius:14px;padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:.2s;`;
+            card.innerHTML = `
+                <div style="width:42px;height:42px;border-radius:50%;background:${c.bg};border:2px solid ${c.border};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:${c.color};flex-shrink:0;">${c.letra}</div>
+                <div style="text-align:left;">
+                    <div style="font-weight:700;font-size:15px;">${nombre}</div>
+                    <div style="font-size:12px;opacity:.5;">Ingresará con su PIN</div>
+                </div>
+                <div style="margin-left:auto;color:${c.color};font-size:18px;">→</div>
+            `;
+            card.onmouseenter = () => card.style.transform = 'translateX(4px)';
+            card.onmouseleave = () => card.style.transform = '';
+            card.onclick = () => seleccionarUsuarioSplit(user);
+            cards.appendChild(card);
+        });
+
+        document.getElementById('split-user-cards').style.display    = 'flex';
+        document.getElementById('split-pin-section').style.display   = 'none';
+        document.getElementById('split-cancelar-btn').style.display  = 'block';
+        document.getElementById('modal-split-user').style.display    = 'flex';
+    }
+
+    function seleccionarUsuarioSplit(user) {
+        _splitUsuario2     = user;
+        _splitPinIngresado = '';
+        actualizarSplitDots();
+
+        // Mostrar sección PIN
+        document.getElementById('split-user-cards').style.display   = 'none';
+        document.getElementById('split-pin-section').style.display  = 'block';
+        document.getElementById('split-cancelar-btn').style.display = 'none';
+        document.getElementById('split-pin-nombre').textContent     = NOMBRES[user] || user;
+        document.getElementById('split-pin-error').textContent      = '';
+
+        // Ajustar dots según longitud del PIN
+        const pinLen = PINS[user] ? PINS[user].length : 4;
+        for (let i = 0; i < 6; i++) {
+            const dot = document.getElementById('split-dot-' + i);
+            if (dot) dot.style.display = i < pinLen ? '' : 'none';
+        }
+    }
+
+    function splitVolverSeleccion() {
+        _splitUsuario2     = null;
+        _splitPinIngresado = '';
+        document.getElementById('split-user-cards').style.display   = 'flex';
+        document.getElementById('split-pin-section').style.display  = 'none';
+        document.getElementById('split-cancelar-btn').style.display = 'block';
+        document.getElementById('split-pin-error').textContent      = '';
+    }
+
+    function splitPinPresionar(digito) {
+        const maxLen = PINS[_splitUsuario2] ? PINS[_splitUsuario2].length : 4;
+        if (_splitPinIngresado.length >= maxLen) return;
+        _splitPinIngresado += digito;
+        actualizarSplitDots();
+        if (_splitPinIngresado.length === maxLen) verificarSplitPin();
+    }
+
+    function splitPinBorrar() {
+        _splitPinIngresado = _splitPinIngresado.slice(0, -1);
+        actualizarSplitDots();
+        document.getElementById('split-pin-error').textContent = '';
+    }
+
+    function actualizarSplitDots() {
+        for (let i = 0; i < 6; i++) {
+            const dot = document.getElementById('split-dot-' + i);
+            if (dot) dot.classList.toggle('filled', i < _splitPinIngresado.length);
+        }
+    }
+
+    function verificarSplitPin() {
+        const pinCorrecto = PINS[_splitUsuario2];
+        if (_splitPinIngresado === pinCorrecto) {
+            cerrarModalSplitUser();
+            _iniciarPantallaDividida(_splitUsuario2);
+        } else {
+            document.getElementById('split-pin-error').textContent = 'PIN incorrecto. Intentá de nuevo.';
+            const dots = document.getElementById('split-pin-dots');
+            dots.classList.remove('pin-shake');
+            void dots.offsetWidth;
+            dots.classList.add('pin-shake');
+            setTimeout(() => { _splitPinIngresado = ''; actualizarSplitDots(); }, 600);
+        }
+    }
+
+    function cerrarModalSplitUser() {
+        document.getElementById('modal-split-user').style.display = 'none';
+        _splitUsuario2     = null;
+        _splitPinIngresado = '';
+    }
+
+    function _iniciarPantallaDividida(usuario2) {
+        // Pasar carrito actual al panel 1
         splitCarritos[1] = JSON.parse(JSON.stringify(carritoVentas));
         splitCarritos[2] = [];
         splitTotales[1]  = totalVentaActual;
         splitTotales[2]  = 0;
 
-        // Labels de usuario
-        const nombre1 = usuarioActual === 'v1' ? 'Usuario V1' : usuarioActual === 'admin' ? 'Admin' : 'Usuario V1';
+        // Labels con los nombres reales
+        const nombre1 = NOMBRES[usuarioActual] || usuarioActual;
+        const nombre2 = NOMBRES[usuario2]      || usuario2;
         document.getElementById('split-label-v1').textContent = nombre1;
-        document.getElementById('split-label-v2').textContent = 'Usuario V2';
+        document.getElementById('split-label-v2').textContent = nombre2;
 
         splitRenderizar(1);
         splitRenderizar(2);
@@ -1310,6 +1474,7 @@
         setTimeout(() => document.getElementById('split-input-1').focus(), 300);
     }
 
+    
     function salirPantallaDividida() {
         // Devolver carrito del panel 1 a la terminal principal
         carritoVentas    = JSON.parse(JSON.stringify(splitCarritos[1]));
