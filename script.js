@@ -7,14 +7,25 @@ let graficoGeneral = null;
 // 1. INICIALIZACIÓN
 // ─────────────────────────────────────────
 async function inicializar() {
+    // Con muchos productos NO cargamos todo al inicio — solo renderizamos
+    // lo que ya tengamos en cache y dejamos que el scanner busque en Firebase
+    console.log("📦 GestOK: Iniciado. Los productos se buscan en Firebase al escanear.");
+    renderizarTablaInventario();
+}
+
+// Carga todos los productos — solo se llama desde la sección Artículos
+async function cargarTodosLosProductos() {
     try {
+        mostrarToast('🔄 Cargando inventario...');
         const querySnapshot = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
         DB_PRODUCTOS = [];
         querySnapshot.forEach(doc => DB_PRODUCTOS.push(doc.data()));
-        console.log("📦 GestOK: Datos sincronizados —", DB_PRODUCTOS.length, "productos");
+        console.log("📦 GestOK: Inventario cargado —", DB_PRODUCTOS.length, "productos");
         renderizarTablaInventario();
+        mostrarToast('✅ ' + DB_PRODUCTOS.length + ' productos cargados');
     } catch (error) {
-        console.error("Error al sincronizar:", error);
+        console.error("Error al cargar inventario:", error);
+        mostrarToast('❌ Error al cargar inventario');
     }
 }
 
@@ -83,6 +94,13 @@ async function buscarEnFirebase(codigoABuscar, cantidad) {
 }
 
 function agregarAlCarrito(prod, cantidad) {
+    // Si es producto por peso, abrir modal de ingreso de peso
+    if (prod.por_peso) {
+        flashScanner('ok');
+        abrirModalPeso(prod);
+        return;
+    }
+
     const existente = carritoVentas.find(i => String(i.cod) === String(prod.cod));
     if (existente) {
         existente.cant += cantidad;
@@ -97,6 +115,98 @@ function agregarAlCarrito(prod, cantidad) {
     }
     flashScanner('ok');
     actualizarTablaVentas();
+}
+
+// ── LÓGICA DE PRODUCTOS POR PESO ────────────────────────────────
+let _prodPeso    = null; // producto esperando peso
+let _unidadPeso  = 'g';  // 'g' o 'kg'
+
+function abrirModalPeso(prod) {
+    _prodPeso   = prod;
+    _unidadPeso = 'g';
+    document.getElementById('modal-peso-nombre').textContent = prod.det;
+    document.getElementById('modal-peso-precio').textContent = '$ ' + parseFloat(prod.pr).toLocaleString('es-AR') + ' /kg';
+    document.getElementById('input-peso').value = '';
+    document.getElementById('peso-precio-preview').innerHTML =
+        '<span style="color:var(--muted);font-size:13px;">Ingresá el peso para ver el precio</span>';
+    seleccionarUnidadPeso('g');
+    document.getElementById('modal-peso').style.display = 'flex';
+    setTimeout(() => document.getElementById('input-peso').focus(), 150);
+}
+
+function cerrarModalPeso() {
+    document.getElementById('modal-peso').style.display = 'none';
+    _prodPeso = null;
+}
+
+function seleccionarUnidadPeso(unidad) {
+    _unidadPeso = unidad;
+    const btnG  = document.getElementById('btn-gramos');
+    const btnKg = document.getElementById('btn-kilos');
+    if (unidad === 'g') {
+        btnG.style.border  = '2px solid var(--accent)';
+        btnG.style.background = 'rgba(56,189,248,0.12)';
+        btnG.style.color   = 'var(--accent)';
+        btnKg.style.border = '1px solid var(--glass-border)';
+        btnKg.style.background = 'var(--glass)';
+        btnKg.style.color  = 'var(--muted)';
+        document.getElementById('input-peso').placeholder = 'Ej: 500 (gramos)';
+    } else {
+        btnKg.style.border  = '2px solid var(--accent)';
+        btnKg.style.background = 'rgba(56,189,248,0.12)';
+        btnKg.style.color   = 'var(--accent)';
+        btnG.style.border  = '1px solid var(--glass-border)';
+        btnG.style.background = 'var(--glass)';
+        btnG.style.color   = 'var(--muted)';
+        document.getElementById('input-peso').placeholder = 'Ej: 1.5 (kilos)';
+    }
+    calcularPrecioSegunPeso();
+}
+
+function calcularPrecioSegunPeso() {
+    if (!_prodPeso) return;
+    const valor = parseFloat(document.getElementById('input-peso').value) || 0;
+    const kg    = _unidadPeso === 'g' ? valor / 1000 : valor;
+    const precio = Math.ceil(_prodPeso.pr * kg);
+    const preview = document.getElementById('peso-precio-preview');
+    if (valor <= 0) {
+        preview.innerHTML = '<span style="color:var(--muted);font-size:13px;">Ingresá el peso para ver el precio</span>';
+        return;
+    }
+    const pesoDisplay = _unidadPeso === 'g' ? valor + 'g' : valor + 'kg';
+    preview.innerHTML = `
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${pesoDisplay} × $${parseFloat(_prodPeso.pr).toLocaleString('es-AR')}/kg</div>
+        <div style="font-size:22px;font-weight:900;color:var(--accent);">$ ${precio.toLocaleString('es-AR')}</div>
+    `;
+}
+
+function confirmarPeso() {
+    if (!_prodPeso) return;
+    const valor = parseFloat(document.getElementById('input-peso').value) || 0;
+    if (valor <= 0) {
+        mostrarToast('⚠️ Ingresá un peso válido');
+        return;
+    }
+    const kg   = _unidadPeso === 'g' ? valor / 1000 : valor;
+    const desc = _unidadPeso === 'g' ? `${valor}g` : `${valor}kg`;
+
+    const existente = carritoVentas.find(i => String(i.cod) === String(_prodPeso.cod));
+    if (existente) {
+        existente.cant += kg;
+    } else {
+        carritoVentas.push({
+            id_temp: Date.now() + Math.random(),
+            cod:  _prodPeso.cod,
+            det:  _prodPeso.det + ` (${desc})`,
+            pr:   parseFloat(_prodPeso.pr),
+            cant: kg
+        });
+    }
+
+    cerrarModalPeso();
+    actualizarTablaVentas();
+    mostrarToast(`✅ ${_prodPeso ? _prodPeso.det : ''} — ${desc} agregado`);
+    setTimeout(() => document.getElementById('lector-barras')?.focus(), 200);
 }
 
 // Flash visual en el input del scanner
@@ -229,27 +339,42 @@ function cerrarModalCobro() {
 async function finalizarYRegistrarVenta(debeImprimir) {
     if (carritoVentas.length === 0) return;
 
-    const metodoPago = document.getElementById('tipo-pago').value;
-    // Obtener nombre del vendedor desde el usuario actual
-    // Usar directamente el nombre del usuario actual
+    const metodoPago      = document.getElementById('tipo-pago').value;
+    const tipoComprobante = document.getElementById('tipo-doc').value;
+    const esPresupuesto   = tipoComprobante === 'Presupuesto';
+
     const vendedorActual = (typeof usuarioActual !== 'undefined' && usuarioActual)
         ? (usuarioActual.charAt(0).toUpperCase() + usuarioActual.slice(1))
         : 'Vendedor';
 
     const ticket = {
-        fecha: new Date().toLocaleString('es-AR'),
-        tipo_comprobante: document.getElementById('tipo-doc').value,
-        metodo_pago: metodoPago,
-        items: JSON.parse(JSON.stringify(carritoVentas)), // copia limpia
-        total: totalVentaActual,
-        vendedor: vendedorActual
+        fecha:            new Date().toLocaleString('es-AR'),
+        tipo_comprobante: tipoComprobante,
+        metodo_pago:      metodoPago,
+        items:            JSON.parse(JSON.stringify(carritoVentas)),
+        total:            totalVentaActual,
+        vendedor:         vendedorActual
     };
 
+    // ── MODO PRESUPUESTO: solo imprimir, sin guardar ni descontar stock ──
+    if (esPresupuesto) {
+        generarTicketImpresion(ticket);
+        setTimeout(() => {
+            document.activeElement && document.activeElement.blur();
+            document.querySelectorAll('input').forEach(i => i.blur());
+            window.print();
+        }, 400);
+        mostrarToast('📄 Presupuesto generado — no se registró como venta');
+        carritoVentas = [];
+        actualizarTablaVentas();
+        cerrarModalCobro();
+        return;
+    }
+
+    // ── VENTA REAL ──
     try {
-        // Guardar venta en Firestore
         await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
 
-        // Descontar stock
         for (const item of carritoVentas) {
             const q = window.fs.query(
                 window.fs.collection(window.db, "articulos"),
@@ -257,23 +382,48 @@ async function finalizarYRegistrarVenta(debeImprimir) {
             );
             const snap = await window.fs.getDocs(q);
             if (!snap.empty) {
-                const docRef    = window.fs.doc(window.db, "articulos", snap.docs[0].id);
-                const stockAct  = snap.docs[0].data().stock || 0;
+                const docRef   = window.fs.doc(window.db, "articulos", snap.docs[0].id);
+                const stockAct = snap.docs[0].data().stock || 0;
                 await window.fs.updateDoc(docRef, { stock: stockAct - item.cant });
             }
         }
 
-        // Generar Factura C en ARCA
-        let datosFactura = null;
         try {
             mostrarToast('📄 Generando Factura C en ARCA...');
-            datosFactura = await generarFacturaARCA(ticket);
+            const datosFactura    = await generarFacturaARCA(ticket);
             ticket.cae            = datosFactura.cae;
             ticket.vencimientoCAE = datosFactura.vencimientoCAE;
             ticket.nroComprobante = datosFactura.nroComprobante;
+            ticket.cae_pendiente  = false;
+            // Actualizar el documento ya guardado con el CAE
+            const qVenta = window.fs.query(
+                window.fs.collection(window.db, "ventas"),
+                window.fs.where("fecha", "==", ticket.fecha)
+            );
+            const snapVenta = await window.fs.getDocs(qVenta);
+            if (!snapVenta.empty) {
+                await window.fs.updateDoc(
+                    window.fs.doc(window.db, "ventas", snapVenta.docs[0].id),
+                    { cae: ticket.cae, vencimientoCAE: ticket.vencimientoCAE,
+                      nroComprobante: ticket.nroComprobante, cae_pendiente: false }
+                );
+            }
             mostrarToast(`✅ Factura C N° ${datosFactura.nroComprobante} — CAE: ${datosFactura.cae}`);
         } catch (errARCA) {
-            mostrarToast('⚠️ Venta registrada pero sin CAE: ' + errARCA.message);
+            // Marcar venta como pendiente de facturar
+            console.warn('ARCA falló, marcando como pendiente:', errARCA.message);
+            const qVenta = window.fs.query(
+                window.fs.collection(window.db, "ventas"),
+                window.fs.where("fecha", "==", ticket.fecha)
+            );
+            const snapVenta = await window.fs.getDocs(qVenta);
+            if (!snapVenta.empty) {
+                await window.fs.updateDoc(
+                    window.fs.doc(window.db, "ventas", snapVenta.docs[0].id),
+                    { cae_pendiente: true, error_arca: errARCA.message }
+                );
+            }
+            mostrarToast('⚠️ Venta guardada — se facturará automáticamente cuando ARCA esté disponible');
         }
 
         if (debeImprimir) {
@@ -289,7 +439,7 @@ async function finalizarYRegistrarVenta(debeImprimir) {
         carritoVentas = [];
         actualizarTablaVentas();
         cerrarModalCobro();
-        inicializar();
+        // No recargamos todos los productos — el stock ya se actualizó en Firebase
 
     } catch (e) {
         console.error(e);
@@ -415,12 +565,17 @@ async function cargarHistorial() {
             if (fFormateada === fechaSeleccionada) {
                 if (totales[data.metodo_pago] !== undefined) totales[data.metodo_pago] += data.total;
                 const hora = data.fecha.split(',')[1]?.trim() || '';
+                const caeStatus = data.cae_pendiente
+                    ? `<span style="background:rgba(239,68,68,0.12);color:var(--danger);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">⚠️ Sin CAE</span>`
+                    : data.cae
+                        ? `<span style="background:rgba(34,197,94,0.1);color:var(--success);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">✅ CAE: ${data.cae}</span>`
+                        : `<span style="opacity:.4;font-size:11px;">${data.tipo_comprobante || ''}</span>`;
                 tbody.innerHTML += `
                     <tr>
                         <td>${hora}</td>
                         <td>${data.metodo_pago}</td>
                         <td style="font-weight:700;">$${data.total.toLocaleString('es-AR')}</td>
-                        <td style="opacity:.5; font-size:12px;">${data.tipo_comprobante || ''}</td>
+                        <td>${caeStatus}</td>
                     </tr>`;
             }
         });
@@ -523,18 +678,22 @@ function obtenerNombreMes(n) {
 // ─────────────────────────────────────────
 async function subirProductoAFirebase() {
     const nuevo = {
-        cod:   document.getElementById('nuevo-cod').value.trim(),
-        det:   document.getElementById('nuevo-det').value.toUpperCase().trim(),
-        pr:    parseFloat(document.getElementById('nuevo-pr').value),
-        stock: parseFloat(document.getElementById('nuevo-stock').value) || 0
+        cod:      document.getElementById('nuevo-cod').value.trim(),
+        det:      document.getElementById('nuevo-det').value.toUpperCase().trim(),
+        pr:       parseFloat(document.getElementById('nuevo-pr').value),
+        stock:    parseFloat(document.getElementById('nuevo-stock').value) || 0,
+        por_peso: document.getElementById('nuevo-por-peso')?.checked || false
     };
     if (!nuevo.cod || !nuevo.det || isNaN(nuevo.pr)) {
         mostrarToast('⚠️ Completá todos los campos.');
         return;
     }
     await window.fs.addDoc(window.fs.collection(window.db, "articulos"), nuevo);
+    // Limpiar checkbox
+    const chk = document.getElementById('nuevo-por-peso');
+    if (chk) chk.checked = false;
     cerrarModalProducto();
-    inicializar();
+    cargarTodosLosProductos();
 }
 
 async function actualizarProductoEnFirebase() {
@@ -543,12 +702,13 @@ async function actualizarProductoEnFirebase() {
     const snap = await window.fs.getDocs(q);
     if (!snap.empty) {
         await window.fs.updateDoc(window.fs.doc(window.db, "articulos", snap.docs[0].id), {
-            det:   document.getElementById('edit-det').value.toUpperCase(),
-            pr:    parseFloat(document.getElementById('edit-pr').value),
-            stock: parseFloat(document.getElementById('edit-stock').value)
+            det:      document.getElementById('edit-det').value.toUpperCase(),
+            pr:       parseFloat(document.getElementById('edit-pr').value),
+            stock:    parseFloat(document.getElementById('edit-stock').value),
+            por_peso: document.getElementById('edit-por-peso')?.checked || false
         });
         cerrarModalEditar();
-        inicializar();
+        cargarTodosLosProductos();
     }
 }
 
@@ -558,7 +718,7 @@ async function eliminarArticuloSistema(codigo) {
     const snap = await window.fs.getDocs(q);
     if (!snap.empty) {
         await window.fs.deleteDoc(window.fs.doc(window.db, "articulos", snap.docs[0].id));
-        inicializar();
+        cargarTodosLosProductos();
     }
 }
 
@@ -571,8 +731,8 @@ function renderizarTablaInventario(lista = DB_PRODUCTOS) {
         tbody.innerHTML += `
             <tr>
                 <td style="font-family:monospace; color:var(--muted);">${p.cod}</td>
-                <td style="font-weight:500;">${p.det}</td>
-                <td>$ ${parseFloat(p.pr).toLocaleString('es-AR')}</td>
+                <td style="font-weight:500;">${p.det} ${p.por_peso ? '<span style="background:rgba(56,189,248,0.12);color:var(--accent);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:6px;">⚖️ x kg</span>' : ''}</td>
+                <td>$ ${parseFloat(p.pr).toLocaleString('es-AR')}${p.por_peso ? '/kg' : ''}</td>
                 <td style="font-weight:700; ${stockColor}">${parseFloat(p.stock).toFixed(3)}</td>
                 <td style="display:flex; gap:8px;">
                     <button class="btn btn-confirm" style="padding:6px 14px; width:auto;" onclick="prepararEdicion('${p.cod}')">
@@ -600,6 +760,8 @@ function prepararEdicion(cod) {
     document.getElementById('edit-det').value   = p.det;
     document.getElementById('edit-pr').value    = p.pr;
     document.getElementById('edit-stock').value = p.stock;
+    const chk = document.getElementById('edit-por-peso');
+    if (chk) chk.checked = p.por_peso || false;
     document.getElementById('modal-editar').style.display = 'flex';
 }
 
@@ -611,6 +773,58 @@ function abrirModalProducto()  { document.getElementById('modal-producto').style
 // INICIO
 // ─────────────────────────────────────────
 setTimeout(inicializar, 1000);
+setTimeout(reintentarFacturasPendientes, 5000); // Reintentar pendientes al iniciar
+
+// ─────────────────────────────────────────
+// REINTENTO AUTOMÁTICO DE FACTURAS PENDIENTES
+// ─────────────────────────────────────────
+async function reintentarFacturasPendientes() {
+    try {
+        const snap = await window.fs.getDocs(
+            window.fs.query(
+                window.fs.collection(window.db, "ventas"),
+                window.fs.where("cae_pendiente", "==", true)
+            )
+        );
+
+        if (snap.empty) return;
+
+        console.log(`🔄 ${snap.size} venta(s) pendiente(s) de facturar...`);
+        mostrarToast(`🔄 Reintentando ${snap.size} factura(s) pendiente(s)...`);
+
+        let exitosas = 0;
+        for (const docSnap of snap.docs) {
+            const venta = docSnap.data();
+            try {
+                const datos = await generarFacturaARCA(venta);
+                await window.fs.updateDoc(
+                    window.fs.doc(window.db, "ventas", docSnap.id),
+                    {
+                        cae:            datos.cae,
+                        vencimientoCAE: datos.vencimientoCAE,
+                        nroComprobante: datos.nroComprobante,
+                        cae_pendiente:  false,
+                        error_arca:     null
+                    }
+                );
+                exitosas++;
+                console.log(`✅ Factura retroactiva emitida: CAE ${datos.cae}`);
+            } catch (e) {
+                console.warn(`❌ No se pudo facturar venta del ${venta.fecha}:`, e.message);
+            }
+        }
+
+        if (exitosas > 0) {
+            mostrarToast(`✅ ${exitosas} factura(s) emitida(s) retroactivamente`);
+        } else {
+            mostrarToast('⚠️ ARCA no disponible — se reintentará al próximo inicio');
+        }
+
+    } catch (e) {
+        // Si no hay ventas pendientes o falla la consulta, ignorar silenciosamente
+        console.log('Sin ventas pendientes o error al consultar:', e.message);
+    }
+}
 
 // ─────────────────────────────────────────
 // TABLA DE RENDIMIENTO POR VENDEDOR
