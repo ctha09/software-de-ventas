@@ -1129,6 +1129,7 @@
         }
         _mostrarSeccion(id);
         if (id === 'ventas')       setTimeout(() => document.getElementById('lector-barras').focus(), 300);
+        if (id === 'articulos')    cargarTodosLosProductos();
         if (id === 'historial')    { document.getElementById('filtro-fecha').value = new Date().toISOString().split('T')[0]; cargarHistorial(); }
         if (id === 'estadisticas') { document.getElementById('filtro-mes-estadistica').value = new Date().toISOString().substring(0,7); cargarEstadisticas(); }
     }
