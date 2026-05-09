@@ -681,9 +681,21 @@
         <div class="status-tag"><div class="dot"></div> Listo</div>
     </div>
 
-    <div class="scanner-wrap">
-        <i class="fas fa-barcode"></i>
-        <input type="text" id="lector-barras" placeholder="Escanear código o ingresar manualmente..." onkeydown="manejarLector(event)" autocomplete="off">
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:20px;">
+        <div class="scanner-wrap" style="flex:1; margin-bottom:0;">
+            <i class="fas fa-barcode"></i>
+            <input type="text" id="lector-barras" placeholder="Escanear código o ingresar manualmente..." onkeydown="manejarLector(event)" autocomplete="off">
+        </div>
+        <button onclick="abrirBuscadorProductos()" style="
+            display:inline-flex; align-items:center; gap:8px;
+            padding:14px 20px; background:rgba(56,189,248,0.1);
+            border:1.5px solid rgba(56,189,248,0.3); color:var(--accent);
+            border-radius:14px; cursor:pointer; font-size:13px; font-weight:700;
+            white-space:nowrap; transition:.2s; flex-shrink:0;
+        " onmouseenter="this.style.background='rgba(56,189,248,0.2)'"
+           onmouseleave="this.style.background='rgba(56,189,248,0.1)'">
+            <i class="fas fa-search"></i> Agregar producto
+        </button>
     </div>
 
     <div class="caja-grid">
@@ -1004,6 +1016,35 @@
 <!-- ══════════════════════════════════════
      MODAL COBRO
 ══════════════════════════════════════ -->
+    <!-- ══ MODAL BUSCADOR DE PRODUCTOS ══ -->
+    <div id="modal-buscador" class="modal-overlay">
+        <div class="modal-window" style="max-width:700px; width:95%; padding:28px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+                <h3 style="margin:0; font-size:18px;"><i class="fas fa-search" style="color:var(--accent); margin-right:8px;"></i>Buscar producto</h3>
+                <button onclick="cerrarBuscadorProductos()" style="background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer;">✕</button>
+            </div>
+
+            <input type="text" id="buscador-input"
+                class="form-input"
+                placeholder="🔍 Escribí el nombre del producto..."
+                oninput="filtrarBuscador(this.value)"
+                autocomplete="off"
+                style="margin-bottom:12px; font-size:15px;">
+
+            <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" id="buscador-count"></div>
+
+            <div id="buscador-lista" style="
+                max-height:400px; overflow-y:auto;
+                background:rgba(0,0,0,0.2); border-radius:12px;
+                border:1px solid var(--glass-border);
+            ">
+                <div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">
+                    Escribí al menos 2 caracteres para buscar
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ══ MODAL PESO ══ -->
     <div id="modal-peso" class="modal-overlay">
         <div class="modal-window" style="max-width:360px; text-align:center;">
@@ -1661,6 +1702,121 @@
             mostrarToast('Error al procesar la venta.');
         }
     }
+
+
+    // ══════════════════════════════════════════
+    //  BUSCADOR DE PRODUCTOS
+    // ══════════════════════════════════════════
+    async function abrirBuscadorProductos() {
+        // Si no hay productos en cache, cargar primero
+        if (DB_PRODUCTOS.length === 0) {
+            document.getElementById('buscador-count').textContent = 'Cargando productos...';
+            document.getElementById('modal-buscador').style.display = 'flex';
+            try {
+                const snap = await window.fs.getDocs(window.fs.collection(window.db, 'articulos'));
+                DB_PRODUCTOS = [];
+                snap.forEach(d => DB_PRODUCTOS.push(d.data()));
+            } catch(e) {
+                mostrarToast('❌ Error cargando productos');
+                return;
+            }
+        }
+
+        document.getElementById('buscador-input').value = '';
+        document.getElementById('buscador-count').textContent = DB_PRODUCTOS.length + ' productos disponibles';
+        document.getElementById('buscador-lista').innerHTML = `
+            <div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">
+                Escribí al menos 2 caracteres para buscar
+            </div>`;
+        document.getElementById('modal-buscador').style.display = 'flex';
+        setTimeout(() => document.getElementById('buscador-input').focus(), 200);
+    }
+
+    function cerrarBuscadorProductos() {
+        document.getElementById('modal-buscador').style.display = 'none';
+        // Devolver foco al scanner
+        setTimeout(() => document.getElementById('lector-barras')?.focus(), 200);
+    }
+
+    function filtrarBuscador(val) {
+        const lista = document.getElementById('buscador-lista');
+        const count = document.getElementById('buscador-count');
+
+        if (val.length < 2) {
+            lista.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">Escribí al menos 2 caracteres para buscar</div>';
+            count.textContent = DB_PRODUCTOS.length + ' productos disponibles';
+            return;
+        }
+
+        const termino = val.toLowerCase().trim();
+        const resultados = DB_PRODUCTOS.filter(p =>
+            p.det.toLowerCase().includes(termino) ||
+            String(p.cod).includes(termino)
+        ).slice(0, 50); // máximo 50 resultados
+
+        count.textContent = resultados.length === 0
+            ? 'Sin resultados para "' + val + '"'
+            : resultados.length + ' resultado' + (resultados.length !== 1 ? 's' : '');
+
+        if (resultados.length === 0) {
+            lista.innerHTML = `
+                <div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">
+                    <i class="fas fa-search" style="font-size:2rem; margin-bottom:10px; display:block; opacity:.3;"></i>
+                    No se encontraron productos
+                </div>`;
+            return;
+        }
+
+        lista.innerHTML = resultados.map(p => {
+            const esPeso = p.por_peso;
+            const precioLabel = '$' + parseFloat(p.pr).toLocaleString('es-AR') + (esPeso ? '/kg' : '');
+            const pesoTag = esPeso ? '<span style="background:rgba(56,189,248,0.12);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:10px;margin-left:6px;">⚖️ x kg</span>' : '';
+            const stockLabel = parseFloat(p.stock) > 0
+                ? `<span style="color:var(--success); font-size:11px;">Stock: ${parseFloat(p.stock).toFixed(p.por_peso?3:0)}</span>`
+                : `<span style="color:var(--muted); font-size:11px;">Sin stock</span>`;
+
+            return `<div onclick="seleccionarProductoBuscador('${p.cod}')" style="
+                display:flex; align-items:center; justify-content:space-between;
+                padding:14px 18px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04);
+                transition:background .15s;
+            " onmouseenter="this.style.background='rgba(56,189,248,0.06)'"
+               onmouseleave="this.style.background=''"
+            >
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        ${p.det}${pesoTag}
+                    </div>
+                    <div style="font-size:11px; color:var(--muted); margin-top:2px; font-family:monospace;">${p.cod}</div>
+                </div>
+                <div style="text-align:right; flex-shrink:0; margin-left:16px;">
+                    <div style="font-weight:800; font-size:15px; color:var(--accent);">${precioLabel}</div>
+                    <div>${stockLabel}</div>
+                </div>
+                <div style="margin-left:12px; color:var(--accent); font-size:16px; opacity:.6;">+</div>
+            </div>`;
+        }).join('');
+    }
+
+    function seleccionarProductoBuscador(cod) {
+        const prod = DB_PRODUCTOS.find(p => String(p.cod) === String(cod));
+        if (!prod) return;
+
+        cerrarBuscadorProductos();
+
+        // Si es por peso, abrir modal de peso
+        if (prod.por_peso) {
+            abrirModalPeso(prod);
+        } else {
+            agregarAlCarrito(prod, 1);
+        }
+    }
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('modal-buscador').style.display === 'flex') {
+            cerrarBuscadorProductos();
+        }
+    });
 
 </script>
 </body>
