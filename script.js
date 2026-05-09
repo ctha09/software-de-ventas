@@ -461,14 +461,11 @@ function generarTicketImpresion(t) {
         }
     });
 
-    // Separador adaptado a 80mm (~42 caracteres Courier 9pt)
-    const SEP = '..........................................';
-
     let filas = '';
     Object.values(agrupados).forEach(i => {
-        const cant    = Number.isInteger(i.cant) ? i.cant : i.cant.toFixed(3);
+        const cant     = Number.isInteger(i.cant) ? i.cant : i.cant.toFixed(3);
         const subtotal = '$' + Math.ceil(i.pr * i.cant).toLocaleString('es-AR');
-        const nombre  = i.det.length > 30 ? i.det.substring(0, 30) : i.det;
+        const nombre   = i.det.length > 30 ? i.det.substring(0, 30) : i.det;
         filas += `
             <tr>
                 <td colspan="2" style="padding-top:5px; font-weight:bold;">${nombre}</td>
@@ -483,6 +480,79 @@ function generarTicketImpresion(t) {
     const vendedor = t.vendedor ? `<div style="font-size:8pt; margin-top:2px;">Vendedor: ${t.vendedor}</div>` : '';
     const totalStr = '$' + (t.total || 0).toLocaleString('es-AR');
 
+    // ── DATOS ARCA / AFIP (obligatorios para validez legal) ──
+    const CUIT_EMISOR = '20-32850879-7';
+    const RAZON_SOCIAL = 'ACOSTA EDUARDO FABIAN';
+    const PTO_VTA     = String(t.ptoVta || 3).padStart(5, '0');
+    const NRO_COMP    = String(t.nroComprobante || 0).padStart(8, '0');
+    const TIPO_COMP   = '011'; // Factura C
+
+    // Generar URL de verificación QR de ARCA (formato oficial RG 4291)
+    let qrSection = '';
+    let caeSection = '';
+
+    if (t.cae && t.cae !== '' && t.cae_pendiente !== true) {
+        // URL oficial de verificación ARCA
+        const fechaComp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+        const qrData = {
+            ver:    1,
+            fecha:  fechaComp,
+            cuit:   20328508797,
+            ptoVta: parseInt(PTO_VTA),
+            tipoCmp: 11,
+            nroCmp:  parseInt(NRO_COMP),
+            importe: t.total,
+            moneda: 'PES',
+            ctz:    1,
+            tipoDocRec: 99,
+            nroDocRec:  0,
+            tipoCodAut: 'E',
+            codAut:     parseInt(t.cae)
+        };
+
+        const qrUrl = 'https://www.afip.gob.ar/fe/qr/?p=' +
+            btoa(JSON.stringify(qrData));
+
+        // Generar QR usando API pública de Google Charts
+        const qrImgUrl = `https://chart.googleapis.com/chart?chs=120x120&cht=qr&chl=${encodeURIComponent(qrUrl)}&choe=UTF-8`;
+
+        const vtoCAE = t.vencimientoCAE
+            ? t.vencimientoCAE.replace(/(\d{4})(\d{2})(\d{2})/, '$3/$2/$1')
+            : '';
+
+        qrSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
+                <img src="${qrImgUrl}" width="80" height="80"
+                     style="flex-shrink:0;"
+                     alt="QR ARCA">
+                <div style="font-size:7.5pt; line-height:1.5;">
+                    <div style="font-weight:900; font-size:8pt;">Comprobante Autorizado</div>
+                    <div>CAE: <b>${t.cae}</b></div>
+                    <div>Vto. CAE: <b>${vtoCAE}</b></div>
+                    <div>Comp. N°: ${PTO_VTA}-${NRO_COMP}</div>
+                </div>
+            </div>`;
+
+        caeSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="font-size:7pt; text-align:center; color:#333;">
+                Verifique este comprobante en www.afip.gob.ar/fe/qr
+            </div>`;
+    } else if (t.tipo_comprobante === 'Presupuesto') {
+        caeSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="font-size:8pt; text-align:center; font-weight:bold; color:#555;">
+                PRESUPUESTO — No válido como factura
+            </div>`;
+    } else {
+        caeSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="font-size:7.5pt; text-align:center; color:#888;">
+                Ticket No Fiscal — Sin valor fiscal
+            </div>`;
+    }
+
     container.innerHTML = `
         <div style="
             width: 100%;
@@ -493,10 +563,12 @@ function generarTicketImpresion(t) {
             box-sizing: border-box;
         ">
             <!-- ENCABEZADO -->
-            <div style="text-align:center; margin-bottom:6px;">
-                <div style="font-size:15pt; font-weight:900; letter-spacing:2px;">GestOK</div>
-                <div style="font-size:8.5pt;">${t.tipo_comprobante || 'Ticket No Fiscal'}</div>
-                <div style="font-size:8pt; color:#444;">${fecha}</div>
+            <div style="text-align:center; margin-bottom:4px;">
+                <div style="font-size:13pt; font-weight:900; letter-spacing:1px;">GestOK</div>
+                <div style="font-size:8.5pt; font-weight:700;">${RAZON_SOCIAL}</div>
+                <div style="font-size:8pt;">CUIT: ${CUIT_EMISOR}</div>
+                <div style="font-size:8.5pt; font-weight:700;">${t.tipo_comprobante || 'Ticket No Fiscal'}</div>
+                <div style="font-size:8pt;">${fecha}</div>
                 ${vendedor}
             </div>
 
@@ -521,21 +593,16 @@ function generarTicketImpresion(t) {
                 </tr>
             </table>
 
-            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <!-- MÉTODO DE PAGO -->
+            <div style="text-align:center; font-size:8.5pt; margin-top:4px;">${t.metodo_pago || ''}</div>
 
-            <!-- CAE -->
-            ${t.cae ? `
-            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-            <div style="font-size:8pt; text-align:center;">
-                <div style="font-weight:bold;">CAE: ${t.cae}</div>
-                <div>Vto: ${t.vencimientoCAE || ''}</div>
-                <div>Comp. N°: ${String(t.nroComprobante || '').padStart(8,'0')}</div>
-                <div>Pto.Vta: 00003 | CUIT: 20-32850879-7</div>
-            </div>` : ''}
+            <!-- QR Y CAE (solo si tiene CAE válido) -->
+            ${qrSection}
+            ${caeSection}
 
             <!-- PIE -->
-            <div style="text-align:center; font-size:8.5pt; margin-top:4px;">${t.metodo_pago || ''}</div>
-            <div style="text-align:center; font-size:8pt; color:#555; margin-top:6px;">¡Gracias por su compra!</div>
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="text-align:center; font-size:8pt; color:#555; margin-top:4px;">¡Gracias por su compra!</div>
 
             <!-- Espacio final para corte -->
             <div style="margin-top:16px;">&nbsp;</div>
