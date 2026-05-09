@@ -389,6 +389,12 @@ async function finalizarYRegistrarVenta(debeImprimir) {
         }
 
         try {
+            // Mostrar indicador de espera en el modal
+            const btnConfirmar = document.querySelector('#modal-cobro .cobrar-btn');
+            if (btnConfirmar) {
+                btnConfirmar.disabled = true;
+                btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando factura...';
+            }
             mostrarToast('📄 Generando Factura C en ARCA...');
             const datosFactura    = await generarFacturaARCA(ticket);
             ticket.cae            = datosFactura.cae;
@@ -408,9 +414,15 @@ async function finalizarYRegistrarVenta(debeImprimir) {
                       nroComprobante: ticket.nroComprobante, cae_pendiente: false }
                 );
             }
+            // Restaurar botón
+            const btnC = document.querySelector('#modal-cobro .cobrar-btn');
+            if (btnC) { btnC.disabled = false; btnC.innerHTML = '<i class="fas fa-check"></i> CONFIRMAR COBRO'; }
             mostrarToast(`✅ Factura C N° ${datosFactura.nroComprobante} — CAE: ${datosFactura.cae}`);
         } catch (errARCA) {
             // Marcar venta como pendiente de facturar
+            // Restaurar botón
+            const btnErr = document.querySelector('#modal-cobro .cobrar-btn');
+            if (btnErr) { btnErr.disabled = false; btnErr.innerHTML = '<i class="fas fa-check"></i> CONFIRMAR COBRO'; }
             console.warn('ARCA falló, marcando como pendiente:', errARCA.message);
             const qVenta = window.fs.query(
                 window.fs.collection(window.db, "ventas"),
@@ -426,13 +438,16 @@ async function finalizarYRegistrarVenta(debeImprimir) {
             mostrarToast('⚠️ Venta guardada — se facturará automáticamente cuando ARCA esté disponible');
         }
 
+        // Imprimir SIEMPRE después de ARCA — ya sea con o sin CAE
         if (debeImprimir) {
+            // Cerrar modal antes de imprimir para evitar que aparezca en el ticket
+            cerrarModalCobro();
             generarTicketImpresion(ticket);
-            setTimeout(() => {
-                document.activeElement && document.activeElement.blur();
-                document.querySelectorAll('input').forEach(i => i.blur());
-                window.print();
-            }, 500);
+            // Dar tiempo para que el navegador renderice el ticket
+            await new Promise(r => setTimeout(r, 800));
+            document.activeElement && document.activeElement.blur();
+            document.querySelectorAll('input').forEach(i => i.blur());
+            window.print();
         }
 
         mostrarToast('✅ Venta registrada — $ ' + totalVentaActual.toLocaleString('es-AR'));
@@ -883,9 +898,8 @@ async function reintentarFacturasPendientes() {
 
         if (exitosas > 0) {
             mostrarToast(`✅ ${exitosas} factura(s) emitida(s) retroactivamente`);
-        } else {
-            mostrarToast('⚠️ ARCA no disponible — se reintentará al próximo inicio');
         }
+        // Si falla silenciosamente — no molestar al vendedor con errores de ARCA
 
     } catch (e) {
         // Si no hay ventas pendientes o falla la consulta, ignorar silenciosamente
