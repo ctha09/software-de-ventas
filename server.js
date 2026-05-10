@@ -11,8 +11,6 @@ app.use(cors());
 app.use(express.json());
 
 // ── CONFIGURACIÓN ──────────────────────────────────────────────
-// Reemplazar \n literales por saltos de línea reales
-// (Railway convierte los saltos de línea en \n al guardar variables)
 function fixPem(str) {
     if (!str) return str;
     return str.replace(/\\n/g, '\n');
@@ -24,7 +22,6 @@ const CONFIG = {
     CERT:        fixPem(process.env.CERT),
     KEY:         fixPem(process.env.KEY),
     KEY_PASS:    process.env.KEY_PASS || 'gestok2024',
-    // WSAA = autenticación, WSFE = facturación
     WSAA_URL:    'https://wsaa.afip.gov.ar/ws/services/LoginCms',
     WSFE_URL:    'https://servicios1.afip.gov.ar/wsfev1/service.asmx',
 };
@@ -32,7 +29,7 @@ const CONFIG = {
 // ── TOKEN EN MEMORIA ────────────────────────────────────────────
 let tokenData = { token: null, sign: null, expira: null };
 
-// ── 1. GENERAR TRA (Login Ticket Request) ──────────────────────
+// ── 1. GENERAR TRA ─────────────────────────────────────────────
 function generarTRA() {
     const ahora       = new Date();
     const generacion  = new Date(ahora.getTime() - 60000).toISOString().replace(/\.\d{3}Z$/, '-03:00');
@@ -49,21 +46,18 @@ function generarTRA() {
 </loginTicketRequest>`;
 }
 
-// ── 2. FIRMAR TRA CON CERTIFICADO ──────────────────────────────
+// ── 2. FIRMAR TRA ──────────────────────────────────────────────
 function firmarTRA(tra) {
     try {
         const cert    = forge.pki.certificateFromPem(CONFIG.CERT);
         const keyPem  = CONFIG.KEY;
 
-        // Desencriptar la clave privada con la contraseña
         let privateKey;
         try {
-            const encryptedKey = forge.pem.decode(keyPem)[0];
-            const decrypted    = forge.pki.decryptRsaPrivateKey(keyPem, CONFIG.KEY_PASS);
-            if (!decrypted) throw new Error('Contraseña incorrecta para la clave privada');
+            const decrypted = forge.pki.decryptRsaPrivateKey(keyPem, CONFIG.KEY_PASS);
+            if (!decrypted) throw new Error('Contraseña incorrecta');
             privateKey = decrypted;
         } catch (e) {
-            // Intentar sin contraseña
             privateKey = forge.pki.privateKeyFromPem(keyPem);
         }
 
@@ -83,7 +77,6 @@ function firmarTRA(tra) {
         p7.sign();
 
         const pem = forge.pkcs7.messageToPem(p7);
-        // Extraer solo el base64 (sin headers PEM)
         return pem
             .replace('-----BEGIN PKCS7-----', '')
             .replace('-----END PKCS7-----', '')
@@ -93,7 +86,7 @@ function firmarTRA(tra) {
     }
 }
 
-// ── 3. LLAMAR AL WSAA PARA OBTENER TOKEN ───────────────────────
+// ── 3. LLAMAR AL WSAA ──────────────────────────────────────────
 function llamarWSAA(cms) {
     return new Promise((resolve, reject) => {
         const body = `<?xml version="1.0" encoding="utf-8"?>
@@ -115,6 +108,8 @@ function llamarWSAA(cms) {
                 'SOAPAction':     '',
                 'Content-Length': Buffer.byteLength(body),
             },
+            // Timeout de 30 segundos
+            timeout: 30000,
         };
 
         const req = https.request(options, res => {
@@ -122,14 +117,26 @@ function llamarWSAA(cms) {
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
                 console.log('WSAA Response status:', res.statusCode);
-                console.log('WSAA Response (first 500):', data.substring(0, 500));
-                resolve(data);
+                console.log('WSAA Response headers:', JSON.stringify(res.headers));
+                console.log('WSAA Response (first 1000):', data.substring(0, 1000));
+
+                if (!data || data.trim() === '') {
+                    return reject(new Error('WSAA devolvió respuesta vacía. Status: ' + res.statusCode));
+                }
+                resolve({ status: res.statusCode, body: data });
             });
         });
-        req.on('error', (e) => {
-            console.error('WSAA Request error:', e.message);
-            reject(e);
+
+        req.on('timeout', () => {
+            req.destroy();
+            reject(new Error('Timeout al conectar con WSAA (30s). Verificar conectividad Railway → afip.gov.ar'));
         });
+
+        req.on('error', (e) => {
+            console.error('WSAA Request error (red/TLS):', e.code, e.message);
+            reject(new Error('Error de red al llamar WSAA: ' + e.code + ' - ' + e.message));
+        });
+
         req.write(body);
         req.end();
     });
@@ -143,26 +150,68 @@ async function obtenerToken() {
     }
 
     console.log('🔑 Renovando token ARCA...');
-    const tra    = generarTRA();
-    const cms    = firmarTRA(tra);
-    const resp   = await llamarWSAA(cms);
-    
+    const tra  = generarTRA();
+    const cms  = firmarTRA(tra);
+
+    let wsaaResult;
+    try {
+        wsaaResult = await llamarWSAA(cms);
+    } catch (netErr) {
+        throw new Error('No se pudo conectar con WSAA: ' + netErr.message);
+    }
+
+    const { status, body: resp } = wsaaResult;
+
+    // Si ARCA devuelve un error HTTP
+    if (status !== 200) {
+        console.error('WSAA HTTP error status:', status);
+        console.error('WSAA error body:', resp.substring(0, 2000));
+        throw new Error('WSAA devolvió HTTP ' + status + '. Body: ' + resp.substring(0, 300));
+    }
+
     let parsed;
     try {
         parsed = await xml2js.parseStringPromise(resp, { explicitArray: false });
     } catch (parseErr) {
         console.error('Error parseando XML del WSAA:', parseErr.message);
-        console.error('XML recibido:', resp.substring(0, 1000));
+        console.error('XML recibido completo:', resp.substring(0, 2000));
         throw new Error('Error parseando respuesta WSAA: ' + parseErr.message);
     }
 
-    if (!parsed['soap:Envelope'] || !parsed['soap:Envelope']['soap:Body']) {
-        console.error('Respuesta WSAA inesperada:', JSON.stringify(parsed).substring(0, 500));
-        throw new Error('Respuesta WSAA inválida — posible error de autenticación');
+    console.log('WSAA parsed keys:', Object.keys(parsed));
+
+    // Buscar el Envelope con o sin namespace
+    const envelope = parsed['soap:Envelope'] || parsed['Envelope'] || parsed['SOAP-ENV:Envelope'];
+    if (!envelope) {
+        console.error('Respuesta WSAA completa parseada:', JSON.stringify(parsed).substring(0, 1000));
+        throw new Error('No se encontró soap:Envelope en la respuesta WSAA. Keys: ' + Object.keys(parsed).join(', '));
     }
 
-    const loginReturn = parsed['soap:Envelope']['soap:Body']['loginCmsResponse']['loginCmsReturn'];
-    const ta          = await xml2js.parseStringPromise(loginReturn, { explicitArray: false });
+    const soapBody = envelope['soap:Body'] || envelope['Body'] || envelope['SOAP-ENV:Body'];
+    if (!soapBody) {
+        console.error('Envelope keys:', Object.keys(envelope));
+        throw new Error('No se encontró soap:Body. Envelope keys: ' + Object.keys(envelope).join(', '));
+    }
+
+    // Detectar fault (error SOAP)
+    const fault = soapBody['soap:Fault'] || soapBody['Fault'] || soapBody['SOAP-ENV:Fault'];
+    if (fault) {
+        const faultString = fault['faultstring'] || fault['faultString'] || JSON.stringify(fault);
+        throw new Error('SOAP Fault del WSAA: ' + faultString);
+    }
+
+    const loginCmsResponse = soapBody['loginCmsResponse'] || soapBody['ns1:loginCmsResponse'];
+    if (!loginCmsResponse) {
+        console.error('soap:Body keys:', Object.keys(soapBody));
+        throw new Error('No se encontró loginCmsResponse. Body keys: ' + Object.keys(soapBody).join(', '));
+    }
+
+    const loginReturn = loginCmsResponse['loginCmsReturn'] || loginCmsResponse['return'];
+    if (!loginReturn) {
+        throw new Error('No se encontró loginCmsReturn. Keys: ' + Object.keys(loginCmsResponse).join(', '));
+    }
+
+    const ta = await xml2js.parseStringPromise(loginReturn, { explicitArray: false });
 
     tokenData = {
         token:  ta.loginTicketResponse.credentials.token,
@@ -194,6 +243,7 @@ function llamarWSFE(soapBody) {
                 'SOAPAction':     '',
                 'Content-Length': Buffer.byteLength(envelope),
             },
+            timeout: 30000,
         };
 
         const req = https.request(options, res => {
@@ -201,13 +251,14 @@ function llamarWSFE(soapBody) {
             res.on('data', chunk => data += chunk);
             res.on('end', () => resolve(data));
         });
+        req.on('timeout', () => { req.destroy(); reject(new Error('Timeout WSFE')); });
         req.on('error', reject);
         req.write(envelope);
         req.end();
     });
 }
 
-// ── 6. OBTENER ÚLTIMO NÚMERO DE COMPROBANTE ────────────────────
+// ── 6. OBTENER ÚLTIMO NRO COMPROBANTE ─────────────────────────
 async function obtenerUltimoNro(token, sign, tipoComprobante) {
     const body = `
 <FECompUltimoAutorizado xmlns="http://ar.gov.afip.dif.FEV1/">
@@ -233,9 +284,7 @@ async function obtenerUltimoNro(token, sign, tipoComprobante) {
 
 // ── 7. AUTORIZAR COMPROBANTE ───────────────────────────────────
 async function autorizarComprobante(token, sign, datos) {
-    const fechaHoy = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-
-    // Calcular importe neto (Factura C: sin discriminar IVA)
+    const fechaHoy     = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const importeTotal = parseFloat(datos.total).toFixed(2);
 
     const body = `
@@ -297,7 +346,7 @@ async function autorizarComprobante(token, sign, datos) {
     };
 }
 
-// ── ENDPOINT PRINCIPAL: GENERAR FACTURA ────────────────────────
+// ── ENDPOINT: GENERAR FACTURA ──────────────────────────────────
 app.post('/facturar', async (req, res) => {
     try {
         const { total, items, vendedor } = req.body;
@@ -308,18 +357,9 @@ app.post('/facturar', async (req, res) => {
 
         console.log(`📄 Generando factura C por $${total}...`);
 
-        // 1. Obtener token
         const { token, sign } = await obtenerToken();
-
-        // 2. Obtener próximo número de comprobante
-        const nroComprobante = await obtenerUltimoNro(token, sign, 11); // 11 = Factura C
-
-        // 3. Autorizar comprobante
-        const resultado = await autorizarComprobante(token, sign, {
-            total,
-            items,
-            nroComprobante,
-        });
+        const nroComprobante  = await obtenerUltimoNro(token, sign, 11);
+        const resultado       = await autorizarComprobante(token, sign, { total, items, nroComprobante });
 
         console.log(`✅ Factura C N° ${nroComprobante} autorizada. CAE: ${resultado.cae}`);
 
@@ -339,11 +379,49 @@ app.post('/facturar', async (req, res) => {
     }
 });
 
+// ── ENDPOINT: TEST WSAA (diagnóstico) ─────────────────────────
+app.get('/test-wsaa', async (req, res) => {
+    try {
+        console.log('🧪 Test WSAA iniciado...');
+
+        // Verificar variables de entorno
+        const checks = {
+            CERT_cargado:    !!CONFIG.CERT && CONFIG.CERT.length > 100,
+            KEY_cargado:     !!CONFIG.KEY  && CONFIG.KEY.length > 100,
+            CUIT:            CONFIG.CUIT,
+            PTO_VTA:         CONFIG.PTO_VTA,
+            CERT_inicio:     CONFIG.CERT ? CONFIG.CERT.substring(0, 40) : 'NO CARGADO',
+            KEY_inicio:      CONFIG.KEY  ? CONFIG.KEY.substring(0, 40)  : 'NO CARGADO',
+        };
+
+        console.log('Config checks:', JSON.stringify(checks));
+
+        // Intentar obtener token
+        const { token, sign, expira } = await obtenerToken();
+
+        res.json({
+            ok:      true,
+            mensaje: 'WSAA funcionando correctamente',
+            checks,
+            token_preview: token ? token.substring(0, 30) + '...' : null,
+            sign_preview:  sign  ? sign.substring(0, 30)  + '...' : null,
+            expira,
+        });
+    } catch (err) {
+        console.error('❌ Test WSAA falló:', err.message);
+        res.status(500).json({
+            ok:     false,
+            error:  err.message,
+            hint:   'Revisar logs de Railway para ver WSAA Response status y body completo',
+        });
+    }
+});
+
 // ── HEALTH CHECK ───────────────────────────────────────────────
 app.get('/', (req, res) => {
     res.json({
         status:  'GestOK ARCA Server activo',
-        version: '1.0.0',
+        version: '1.1.0',
         cuit:    CONFIG.CUIT,
         ptoVta:  CONFIG.PTO_VTA,
     });
@@ -354,4 +432,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 GestOK ARCA Server corriendo en puerto ${PORT}`);
     console.log(`📋 CUIT: ${CONFIG.CUIT} | Punto de venta: ${CONFIG.PTO_VTA}`);
+    console.log(`📋 CERT cargado: ${!!CONFIG.CERT} | KEY cargado: ${!!CONFIG.KEY}`);
 });
