@@ -529,7 +529,7 @@ function generarTicketImpresion(t) {
             btoa(JSON.stringify(qrData));
 
         // Generar QR usando API pública de Google Charts
-        const qrImgUrl = `https://chart.googleapis.com/chart?chs=120x120&cht=qr&chl=${encodeURIComponent(qrUrl)}&choe=UTF-8`;
+        const qrImgUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(qrUrl)}&choe=UTF-8`;
 
         const vtoCAE = t.vencimientoCAE
             ? t.vencimientoCAE.replace(/(\d{4})(\d{2})(\d{2})/, '$3/$2/$1')
@@ -538,7 +538,7 @@ function generarTicketImpresion(t) {
         qrSection = `
             <div style="border-top:1px dashed #000; margin:6px 0;"></div>
             <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
-                <img src="${qrImgUrl}" width="80" height="80"
+                <img src="${qrImgUrl}" width="130" height="130"
                      style="flex-shrink:0;"
                      alt="QR ARCA">
                 <div style="font-size:7.5pt; line-height:1.5;">
