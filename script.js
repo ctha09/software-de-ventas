@@ -7,13 +7,10 @@ let graficoGeneral = null;
 // 1. INICIALIZACIÓN
 // ─────────────────────────────────────────
 async function inicializar() {
-    // Con muchos productos NO cargamos todo al inicio — solo renderizamos
-    // lo que ya tengamos en cache y dejamos que el scanner busque en Firebase
     console.log("📦 GestOK: Iniciado. Los productos se buscan en Firebase al escanear.");
     renderizarTablaInventario();
 }
 
-// Carga todos los productos — solo se llama desde la sección Artículos
 async function cargarTodosLosProductos() {
     try {
         mostrarToast('🔄 Cargando inventario...');
@@ -32,36 +29,22 @@ async function cargarTodosLosProductos() {
 // ─────────────────────────────────────────
 // 2. LÓGICA DE VENTAS — SCANNER
 // ─────────────────────────────────────────
-
-// Busca primero en el cache local (DB_PRODUCTOS).
-// Si no lo encuentra, va directamente a Firebase como fallback.
-// Esto resuelve: productos cargados desde otra PC, y race conditions al iniciar.
 function manejarLector(e) {
     if (e.key !== 'Enter') return;
-
     const input = e.target.value.trim();
     if (!input) return;
-
     let codigoABuscar = input;
     let cantidad = 1;
-
-    // Soporte balanza (prefijo 20, código 5 dígitos, peso 5 dígitos / 1000)
     if (input.startsWith('20') && input.length >= 12) {
         codigoABuscar = input.substring(2, 7);
         cantidad = parseInt(input.substring(7, 12)) / 1000;
     }
-
     e.target.value = '';
-
-    // 1° — buscar en cache local (rápido, sin red)
     const prodLocal = DB_PRODUCTOS.find(p => String(p.cod) === String(codigoABuscar));
-
     if (prodLocal) {
         agregarAlCarrito(prodLocal, cantidad);
         return;
     }
-
-    // 2° — no estaba en cache: buscar en Firebase y actualizar cache
     mostrarToast('🔍 Buscando en base de datos...');
     buscarEnFirebase(codigoABuscar, cantidad);
 }
@@ -73,17 +56,12 @@ async function buscarEnFirebase(codigoABuscar, cantidad) {
             window.fs.where("cod", "==", String(codigoABuscar))
         );
         const snap = await window.fs.getDocs(q);
-
         if (!snap.empty) {
             const prod = snap.docs[0].data();
-
-            // Actualizar cache local para no volver a consultar Firebase por este mismo código
             const yaEnCache = DB_PRODUCTOS.find(p => String(p.cod) === String(prod.cod));
             if (!yaEnCache) DB_PRODUCTOS.push(prod);
-
             agregarAlCarrito(prod, cantidad);
         } else {
-            // Tampoco existe en Firebase
             flashScanner('err');
             mostrarToast('⚠️ Producto no encontrado: ' + codigoABuscar);
         }
@@ -94,13 +72,11 @@ async function buscarEnFirebase(codigoABuscar, cantidad) {
 }
 
 function agregarAlCarrito(prod, cantidad) {
-    // Si es producto por peso, abrir modal de ingreso de peso
     if (prod.por_peso) {
         flashScanner('ok');
         abrirModalPeso(prod);
         return;
     }
-
     const existente = carritoVentas.find(i => String(i.cod) === String(prod.cod));
     if (existente) {
         existente.cant += cantidad;
@@ -117,9 +93,9 @@ function agregarAlCarrito(prod, cantidad) {
     actualizarTablaVentas();
 }
 
-// ── LÓGICA DE PRODUCTOS POR PESO ────────────────────────────────
-let _prodPeso    = null; // producto esperando peso
-let _unidadPeso  = 'g';  // 'g' o 'kg'
+// ── PRODUCTOS POR PESO ──
+let _prodPeso   = null;
+let _unidadPeso = 'g';
 
 function abrirModalPeso(prod) {
     _prodPeso   = prod;
@@ -189,7 +165,6 @@ function confirmarPeso() {
     }
     const kg   = _unidadPeso === 'g' ? valor / 1000 : valor;
     const desc = _unidadPeso === 'g' ? `${valor}g` : `${valor}kg`;
-
     const existente = carritoVentas.find(i => String(i.cod) === String(_prodPeso.cod));
     if (existente) {
         existente.cant += kg;
@@ -202,14 +177,12 @@ function confirmarPeso() {
             cant: kg
         });
     }
-
     cerrarModalPeso();
     actualizarTablaVentas();
     mostrarToast(`✅ ${_prodPeso ? _prodPeso.det : ''} — ${desc} agregado`);
     setTimeout(() => document.getElementById('lector-barras')?.focus(), 200);
 }
 
-// Flash visual en el input del scanner
 function flashScanner(tipo) {
     const inp = document.getElementById('lector-barras');
     if (!inp) return;
@@ -217,7 +190,6 @@ function flashScanner(tipo) {
     setTimeout(() => { inp.classList.remove('scan-ok', 'scan-err'); }, 420);
 }
 
-// Toast liviano (no interrumpe el flujo como alert)
 function mostrarToast(msg) {
     let t = document.getElementById('gestok-toast');
     if (!t) {
@@ -238,7 +210,7 @@ function mostrarToast(msg) {
 }
 
 // ─────────────────────────────────────────
-// 3. RENDERIZADO DE LA TABLA DE VENTAS
+// 3. RENDERIZADO TABLA DE VENTAS
 // ─────────────────────────────────────────
 function actualizarTablaVentas() {
     const body  = document.getElementById('lista-ventas-items');
@@ -247,18 +219,15 @@ function actualizarTablaVentas() {
     const btn   = document.getElementById('cobrar-btn');
     if (!body) return;
 
-    // Carrito vacío
     if (carritoVentas.length === 0) {
         body.innerHTML = `
-            <tr>
-                <td colspan="5">
-                    <div class="empty-state">
-                        <i class="fas fa-shopping-cart"></i>
-                        <p>El carrito está vacío</p>
-                        <p style="font-size:12px; opacity:.6;">Escaneá un producto para comenzar</p>
-                    </div>
-                </td>
-            </tr>`;
+            <tr><td colspan="5">
+                <div class="empty-state">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>El carrito está vacío</p>
+                    <p style="font-size:12px; opacity:.6;">Escaneá un producto para comenzar</p>
+                </div>
+            </td></tr>`;
         totalVentaActual = 0;
         document.getElementById('total-final').innerText = '$ 0';
         if (meta)  meta.innerText = '—';
@@ -275,7 +244,6 @@ function actualizarTablaVentas() {
         const subtotal = Math.ceil(item.pr * item.cant);
         totalAcumulado += subtotal;
         totalItems += item.cant;
-
         const cantDisplay = Number.isInteger(item.cant) ? item.cant : item.cant.toFixed(3);
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -284,23 +252,15 @@ function actualizarTablaVentas() {
                 <div class="item-cod">${item.cod}</div>
             </td>
             <td class="item-price">$ ${item.pr.toLocaleString('es-AR')}</td>
-            <td style="text-align:center;">
-                <span class="qty-badge">${cantDisplay}</span>
-            </td>
+            <td style="text-align:center;"><span class="qty-badge">${cantDisplay}</span></td>
             <td class="item-subtotal">$ ${subtotal.toLocaleString('es-AR')}</td>
-            <td>
-                <div class="del-item" onclick="eliminarItemCarrito(${item.id_temp})">
-                    <i class="fas fa-times"></i>
-                </div>
-            </td>
+            <td><div class="del-item" onclick="eliminarItemCarrito(${item.id_temp})"><i class="fas fa-times"></i></div></td>
         `;
         body.appendChild(tr);
     });
 
     totalVentaActual = totalAcumulado;
-
     document.getElementById('total-final').innerText = '$ ' + totalAcumulado.toLocaleString('es-AR');
-
     const cantLabel = totalItems === 1 ? '1 artículo' : `${Number.isInteger(totalItems) ? totalItems : totalItems.toFixed(3)} artículos`;
     if (meta)  meta.innerText = cantLabel + ' · ' + (document.getElementById('tipo-doc')?.value || '');
     if (count) count.innerText = cantLabel;
@@ -323,8 +283,6 @@ function limpiarCarritoCompleto() {
 // ─────────────────────────────────────────
 // 4. COBRO Y TICKETS
 // ─────────────────────────────────────────
-// La apertura del modal se maneja desde index.html para poder capturar
-// el flag de impresión. Esta función sigue siendo compatible.
 function calcularVuelto() {
     const recibido = parseFloat(document.getElementById('pago-recibido').value) || 0;
     const vuelto   = recibido - totalVentaActual;
@@ -356,7 +314,6 @@ async function finalizarYRegistrarVenta(debeImprimir) {
         vendedor:         vendedorActual
     };
 
-    // ── MODO PRESUPUESTO: solo imprimir, sin guardar ni descontar stock ──
     if (esPresupuesto) {
         generarTicketImpresion(ticket);
         setTimeout(() => {
@@ -371,7 +328,6 @@ async function finalizarYRegistrarVenta(debeImprimir) {
         return;
     }
 
-    // ── VENTA REAL ──
     try {
         await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
 
@@ -389,7 +345,6 @@ async function finalizarYRegistrarVenta(debeImprimir) {
         }
 
         try {
-            // Mostrar indicador de espera en el modal
             const btnConfirmar = document.querySelector('#modal-cobro .cobrar-btn');
             if (btnConfirmar) {
                 btnConfirmar.disabled = true;
@@ -401,7 +356,6 @@ async function finalizarYRegistrarVenta(debeImprimir) {
             ticket.vencimientoCAE = datosFactura.vencimientoCAE;
             ticket.nroComprobante = datosFactura.nroComprobante;
             ticket.cae_pendiente  = false;
-            // Actualizar el documento ya guardado con el CAE
             const qVenta = window.fs.query(
                 window.fs.collection(window.db, "ventas"),
                 window.fs.where("fecha", "==", ticket.fecha)
@@ -414,13 +368,10 @@ async function finalizarYRegistrarVenta(debeImprimir) {
                       nroComprobante: ticket.nroComprobante, cae_pendiente: false }
                 );
             }
-            // Restaurar botón
             const btnC = document.querySelector('#modal-cobro .cobrar-btn');
             if (btnC) { btnC.disabled = false; btnC.innerHTML = '<i class="fas fa-check"></i> CONFIRMAR COBRO'; }
             mostrarToast(`✅ Factura C N° ${datosFactura.nroComprobante} — CAE: ${datosFactura.cae}`);
         } catch (errARCA) {
-            // Marcar venta como pendiente de facturar
-            // Restaurar botón
             const btnErr = document.querySelector('#modal-cobro .cobrar-btn');
             if (btnErr) { btnErr.disabled = false; btnErr.innerHTML = '<i class="fas fa-check"></i> CONFIRMAR COBRO'; }
             console.warn('ARCA falló, marcando como pendiente:', errARCA.message);
@@ -438,12 +389,9 @@ async function finalizarYRegistrarVenta(debeImprimir) {
             mostrarToast('⚠️ Venta guardada — se facturará automáticamente cuando ARCA esté disponible');
         }
 
-        // Imprimir SIEMPRE después de ARCA — ya sea con o sin CAE
         if (debeImprimir) {
-            // Cerrar modal antes de imprimir para evitar que aparezca en el ticket
             cerrarModalCobro();
             generarTicketImpresion(ticket);
-            // Dar tiempo para que el navegador renderice el ticket
             await new Promise(r => setTimeout(r, 800));
             document.activeElement && document.activeElement.blur();
             document.querySelectorAll('input').forEach(i => i.blur());
@@ -454,7 +402,6 @@ async function finalizarYRegistrarVenta(debeImprimir) {
         carritoVentas = [];
         actualizarTablaVentas();
         cerrarModalCobro();
-        // No recargamos todos los productos — el stock ya se actualizó en Firebase
 
     } catch (e) {
         console.error(e);
@@ -465,7 +412,6 @@ async function finalizarYRegistrarVenta(debeImprimir) {
 function generarTicketImpresion(t) {
     const container = document.getElementById('ticket-print');
 
-    // Agrupar items por codigo para evitar duplicados
     const agrupados = {};
     t.items.forEach(i => {
         const key = String(i.cod);
@@ -495,41 +441,33 @@ function generarTicketImpresion(t) {
     const vendedor = t.vendedor ? `<div style="font-size:8pt; margin-top:2px;">Vendedor: ${t.vendedor}</div>` : '';
     const totalStr = '$' + (t.total || 0).toLocaleString('es-AR');
 
-    // ── DATOS ARCA / AFIP (obligatorios para validez legal) ──
-    const CUIT_EMISOR = '20-32850879-7';
+    const CUIT_EMISOR  = '20-32850879-7';
     const RAZON_SOCIAL = 'ACOSTA EDUARDO FABIAN';
-    const PTO_VTA     = String(t.ptoVta || 3).padStart(5, '0');
-    const NRO_COMP    = String(t.nroComprobante || 0).padStart(8, '0');
-    const TIPO_COMP   = '011'; // Factura C
+    const PTO_VTA      = String(t.ptoVta || 3).padStart(5, '0');
+    const NRO_COMP     = String(t.nroComprobante || 0).padStart(8, '0');
 
-    // Generar URL de verificación QR de ARCA (formato oficial RG 4291)
-    let qrSection = '';
+    let qrUrl    = '';
+    let qrSection  = '';
     let caeSection = '';
 
     if (t.cae && t.cae !== '' && t.cae_pendiente !== true) {
-        // URL oficial de verificación ARCA
         const fechaComp = new Date().toISOString().slice(0,10).replace(/-/g,'');
         const qrData = {
-            ver:    1,
-            fecha:  fechaComp,
-            cuit:   20328508797,
-            ptoVta: parseInt(PTO_VTA),
+            ver:     1,
+            fecha:   fechaComp,
+            cuit:    20328508797,
+            ptoVta:  parseInt(PTO_VTA),
             tipoCmp: 11,
             nroCmp:  parseInt(NRO_COMP),
             importe: t.total,
-            moneda: 'PES',
-            ctz:    1,
+            moneda:  'PES',
+            ctz:     1,
             tipoDocRec: 99,
             nroDocRec:  0,
             tipoCodAut: 'E',
             codAut:     parseInt(t.cae)
         };
-
-        const qrUrl = 'https://www.afip.gob.ar/fe/qr/?p=' +
-            btoa(JSON.stringify(qrData));
-
-        // Generar QR usando API pública de Google Charts
-        const qrImgUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(qrUrl)}&choe=UTF-8`;
+        qrUrl = 'https://www.afip.gob.ar/fe/qr/?p=' + btoa(JSON.stringify(qrData));
 
         const vtoCAE = t.vencimientoCAE
             ? t.vencimientoCAE.replace(/(\d{4})(\d{2})(\d{2})/, '$3/$2/$1')
@@ -538,9 +476,7 @@ function generarTicketImpresion(t) {
         qrSection = `
             <div style="border-top:1px dashed #000; margin:6px 0;"></div>
             <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
-                <img src="${qrImgUrl}" width="130" height="130"
-                     style="flex-shrink:0;"
-                     alt="QR ARCA">
+                <div id="qr-arca-canvas" style="flex-shrink:0; width:130px; height:130px;"></div>
                 <div style="font-size:7.5pt; line-height:1.5;">
                     <div style="font-weight:900; font-size:8pt;">Comprobante Autorizado</div>
                     <div>CAE: <b>${t.cae}</b></div>
@@ -569,15 +505,7 @@ function generarTicketImpresion(t) {
     }
 
     container.innerHTML = `
-        <div style="
-            width: 100%;
-            font-family: 'Courier New', monospace;
-            font-size: 9pt;
-            color: black;
-            background: white;
-            box-sizing: border-box;
-        ">
-            <!-- ENCABEZADO -->
+        <div style="width:100%; font-family:'Courier New',monospace; font-size:9pt; color:black; background:white; box-sizing:border-box;">
             <div style="text-align:center; margin-bottom:4px;">
                 <div style="font-size:13pt; font-weight:900; letter-spacing:1px;">GestOK</div>
                 <div style="font-size:8.5pt; font-weight:700;">${RAZON_SOCIAL}</div>
@@ -586,43 +514,42 @@ function generarTicketImpresion(t) {
                 <div style="font-size:8pt;">${fecha}</div>
                 ${vendedor}
             </div>
-
             <div style="border-top:1px dashed #000; margin:4px 0;"></div>
-
-            <!-- ITEMS -->
             <table style="width:100%; border-collapse:collapse; font-size:9pt; table-layout:fixed;">
-                <colgroup>
-                    <col style="width:65%;">
-                    <col style="width:35%;">
-                </colgroup>
+                <colgroup><col style="width:65%;"><col style="width:35%;"></colgroup>
                 ${filas}
             </table>
-
             <div style="border-top:1px dashed #000; margin:6px 0;"></div>
-
-            <!-- TOTAL -->
             <table style="width:100%; border-collapse:collapse; font-size:12pt; font-weight:900;">
                 <tr>
                     <td style="padding:2px 0;">TOTAL:</td>
                     <td style="text-align:right; padding:2px 0;">${totalStr}</td>
                 </tr>
             </table>
-
-            <!-- MÉTODO DE PAGO -->
             <div style="text-align:center; font-size:8.5pt; margin-top:4px;">${t.metodo_pago || ''}</div>
-
-            <!-- QR Y CAE (solo si tiene CAE válido) -->
             ${qrSection}
             ${caeSection}
-
-            <!-- PIE -->
             <div style="border-top:1px dashed #000; margin:6px 0;"></div>
             <div style="text-align:center; font-size:8pt; color:#555; margin-top:4px;">¡Gracias por su compra!</div>
-
-            <!-- Espacio final para corte -->
             <div style="margin-top:16px;">&nbsp;</div>
         </div>
     `;
+
+    // Generar QR localmente (sin depender de internet)
+    if (t.cae && t.cae_pendiente !== true && qrUrl) {
+        setTimeout(() => {
+            const qrDiv = document.getElementById('qr-arca-canvas');
+            if (qrDiv && typeof QRCode !== 'undefined') {
+                qrDiv.innerHTML = '';
+                new QRCode(qrDiv, {
+                    text: qrUrl,
+                    width: 130,
+                    height: 130,
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            }
+        }, 50);
+    }
 }
 
 // ─────────────────────────────────────────
@@ -631,19 +558,16 @@ function generarTicketImpresion(t) {
 async function cargarHistorial() {
     const fechaSeleccionada = document.getElementById('filtro-fecha').value;
     if (!fechaSeleccionada) return;
-
     try {
         const snapshot = await window.fs.getDocs(window.fs.collection(window.db, "ventas"));
         let totales = { "Efectivo": 0, "Tarjeta de Credito": 0, "Tarjeta de Debito": 0, "Transferencia": 0 };
         const tbody = document.getElementById('tabla-historial-body');
         tbody.innerHTML = '';
-
         snapshot.forEach(doc => {
             const data = doc.data();
             const [f]  = data.fecha.split(',');
             const [d, m, y] = f.trim().split('/');
             const fFormateada = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-
             if (fFormateada === fechaSeleccionada) {
                 if (totales[data.metodo_pago] !== undefined) totales[data.metodo_pago] += data.total;
                 const hora = data.fecha.split(',')[1]?.trim() || '';
@@ -661,12 +585,10 @@ async function cargarHistorial() {
                     </tr>`;
             }
         });
-
         document.getElementById('res-efectivo').innerText = '$ ' + totales["Efectivo"].toLocaleString('es-AR');
         document.getElementById('res-credito').innerText  = '$ ' + totales["Tarjeta de Credito"].toLocaleString('es-AR');
         document.getElementById('res-debito').innerText   = '$ ' + totales["Tarjeta de Debito"].toLocaleString('es-AR');
         document.getElementById('res-transf').innerText   = '$ ' + totales["Transferencia"].toLocaleString('es-AR');
-
     } catch (e) { console.error(e); }
 }
 
@@ -674,19 +596,13 @@ async function cargarHistorial() {
 // 6. ESTADÍSTICAS
 // ─────────────────────────────────────────
 async function cargarEstadisticas() {
-    const tipo         = document.getElementById('tipo-grafica').value;
+    const tipo            = document.getElementById('tipo-grafica').value;
     const mesSeleccionado = document.getElementById('filtro-mes-estadistica').value;
     const [anioSel, mesSel] = mesSeleccionado.split('-');
-
     try {
         const snapshot = await window.fs.getDocs(window.fs.collection(window.db, "ventas"));
-
-        // Datos globales para el gráfico
         let datosAgrupados = {};
-
-        // Datos por vendedor: { 'Usuario V1': { ventas: 0, total: 0 }, ... }
-        let porVendedor = {};
-
+        let porVendedor    = {};
         snapshot.forEach(doc => {
             const data = doc.data();
             const [fechaParte] = data.fecha.split(',');
@@ -695,13 +611,9 @@ async function cargarEstadisticas() {
             const itemAnio = y;
             const itemDia  = d.padStart(2,'0');
             const vendedor = data.vendedor || 'Sin especificar';
-
-            // Acumular por vendedor (sin filtro de mes — muestra histórico total)
             if (!porVendedor[vendedor]) porVendedor[vendedor] = { ventas: 0, total: 0 };
             porVendedor[vendedor].ventas++;
             porVendedor[vendedor].total += data.total || 0;
-
-            // Gráfico filtrado por mes/año seleccionado
             if (tipo === 'diaria') {
                 if (itemAnio === anioSel && itemMes === mesSel) {
                     const etiqueta = `${itemDia}/${itemMes}`;
@@ -714,15 +626,12 @@ async function cargarEstadisticas() {
                 }
             }
         });
-
         const etiquetas = Object.keys(datosAgrupados).sort();
         const valores   = etiquetas.map(k => datosAgrupados[k]);
         renderizarGraficoGeneral(etiquetas, valores, tipo === 'diaria' ? 'Ventas del Mes ($)' : 'Ventas del Año ($)');
         renderizarTablaVendedores(porVendedor);
-
     } catch (e) { console.error(e); }
 }
-
 
 function renderizarGraficoGeneral(labels, data, titulo) {
     const ctx = document.getElementById('graficoGeneral').getContext('2d');
@@ -771,7 +680,6 @@ async function subirProductoAFirebase() {
         return;
     }
     await window.fs.addDoc(window.fs.collection(window.db, "articulos"), nuevo);
-    // Limpiar checkbox
     const chk = document.getElementById('nuevo-por-peso');
     if (chk) chk.checked = false;
     cerrarModalProducto();
@@ -779,8 +687,8 @@ async function subirProductoAFirebase() {
 }
 
 async function actualizarProductoEnFirebase() {
-    const cod = document.getElementById('edit-id').value;
-    const q   = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod","==",cod));
+    const cod  = document.getElementById('edit-id').value;
+    const q    = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod","==",cod));
     const snap = await window.fs.getDocs(q);
     if (!snap.empty) {
         await window.fs.updateDoc(window.fs.doc(window.db, "articulos", snap.docs[0].id), {
@@ -855,7 +763,7 @@ function abrirModalProducto()  { document.getElementById('modal-producto').style
 // INICIO
 // ─────────────────────────────────────────
 setTimeout(inicializar, 1000);
-setTimeout(reintentarFacturasPendientes, 5000); // Reintentar pendientes al iniciar
+setTimeout(reintentarFacturasPendientes, 5000);
 
 // ─────────────────────────────────────────
 // REINTENTO AUTOMÁTICO DE FACTURAS PENDIENTES
@@ -868,12 +776,9 @@ async function reintentarFacturasPendientes() {
                 window.fs.where("cae_pendiente", "==", true)
             )
         );
-
         if (snap.empty) return;
-
         console.log(`🔄 ${snap.size} venta(s) pendiente(s) de facturar...`);
         mostrarToast(`🔄 Reintentando ${snap.size} factura(s) pendiente(s)...`);
-
         let exitosas = 0;
         for (const docSnap of snap.docs) {
             const venta = docSnap.data();
@@ -881,13 +786,8 @@ async function reintentarFacturasPendientes() {
                 const datos = await generarFacturaARCA(venta);
                 await window.fs.updateDoc(
                     window.fs.doc(window.db, "ventas", docSnap.id),
-                    {
-                        cae:            datos.cae,
-                        vencimientoCAE: datos.vencimientoCAE,
-                        nroComprobante: datos.nroComprobante,
-                        cae_pendiente:  false,
-                        error_arca:     null
-                    }
+                    { cae: datos.cae, vencimientoCAE: datos.vencimientoCAE,
+                      nroComprobante: datos.nroComprobante, cae_pendiente: false, error_arca: null }
                 );
                 exitosas++;
                 console.log(`✅ Factura retroactiva emitida: CAE ${datos.cae}`);
@@ -895,44 +795,31 @@ async function reintentarFacturasPendientes() {
                 console.warn(`❌ No se pudo facturar venta del ${venta.fecha}:`, e.message);
             }
         }
-
-        if (exitosas > 0) {
-            mostrarToast(`✅ ${exitosas} factura(s) emitida(s) retroactivamente`);
-        }
-        // Si falla silenciosamente — no molestar al vendedor con errores de ARCA
-
+        if (exitosas > 0) mostrarToast(`✅ ${exitosas} factura(s) emitida(s) retroactivamente`);
     } catch (e) {
-        // Si no hay ventas pendientes o falla la consulta, ignorar silenciosamente
         console.log('Sin ventas pendientes o error al consultar:', e.message);
     }
 }
 
 // ─────────────────────────────────────────
-// TABLA DE RENDIMIENTO POR VENDEDOR
+// TABLA RENDIMIENTO POR VENDEDOR
 // ─────────────────────────────────────────
 function renderizarTablaVendedores(porVendedor) {
     const container = document.getElementById('tabla-vendedores');
     if (!container) return;
-
-    const vendedores = Object.entries(porVendedor)
-        .sort((a, b) => b[1].total - a[1].total);
-
+    const vendedores = Object.entries(porVendedor).sort((a, b) => b[1].total - a[1].total);
     if (vendedores.length === 0) {
         container.innerHTML = '<p style="opacity:.4; text-align:center; padding:20px;">Sin datos de ventas aún.</p>';
         return;
     }
-
     const totalGeneral = vendedores.reduce((s, [, v]) => s + v.total, 0);
     const totalVentas  = vendedores.reduce((s, [, v]) => s + v.ventas, 0);
-
-    // Colores por usuario
     const colores = {
-        'Sandra':  { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8' },
-        'Tamara':  { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7' },
-        'Fabian':  { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b' },
+        'Sandra': { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8' },
+        'Tamara': { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7' },
+        'Fabian': { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b' },
     };
     const colorDefault = { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', color: '#94a3b8' };
-
     let html = `
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:24px;">
             ${vendedores.map(([nombre, datos]) => {
@@ -965,7 +852,6 @@ function renderizarTablaVendedores(porVendedor) {
                 </div>`;
             }).join('')}
         </div>
-
         <table class="v-table">
             <thead>
                 <tr>
@@ -982,12 +868,10 @@ function renderizarTablaVendedores(porVendedor) {
                     const pct = totalGeneral > 0 ? ((datos.total / totalGeneral) * 100).toFixed(1) : 0;
                     const avg = datos.ventas > 0 ? Math.round(datos.total / datos.ventas) : 0;
                     return `<tr>
-                        <td>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <div style="width:8px;height:8px;border-radius:50%;background:${c.color};"></div>
-                                <span style="font-weight:600;">${nombre}</span>
-                            </div>
-                        </td>
+                        <td><div style="display:flex;align-items:center;gap:8px;">
+                            <div style="width:8px;height:8px;border-radius:50%;background:${c.color};"></div>
+                            <span style="font-weight:600;">${nombre}</span>
+                        </div></td>
                         <td style="text-align:center;font-weight:700;">${datos.ventas}</td>
                         <td style="text-align:right;color:#94a3b8;">$${avg.toLocaleString('es-AR')}</td>
                         <td style="text-align:right;font-weight:800;color:${c.color};">$${datos.total.toLocaleString('es-AR')}</td>
@@ -1008,12 +892,11 @@ function renderizarTablaVendedores(porVendedor) {
             </tbody>
         </table>
     `;
-
     container.innerHTML = html;
 }
 
 // ─────────────────────────────────────────
-// FACTURACIÓN ARCA — INTEGRACIÓN DIRECTA
+// FACTURACIÓN ARCA
 // ─────────────────────────────────────────
 const ARCA_SERVER = 'https://gestok-server-production.up.railway.app';
 
@@ -1028,15 +911,12 @@ async function generarFacturaARCA(ticket) {
                 vendedor: ticket.vendedor || 'GestOK'
             })
         });
-
         if (!response.ok) {
             const err = await response.json();
             throw new Error(err.error || 'Error del servidor ARCA');
         }
-
         const datos = await response.json();
-        return datos; // { cae, vencimientoCAE, nroComprobante, ptoVta, cuit }
-
+        return datos;
     } catch (e) {
         console.error('Error ARCA:', e.message);
         throw e;
