@@ -120,9 +120,16 @@ function llamarWSAA(cms) {
         const req = https.request(options, res => {
             let data = '';
             res.on('data', chunk => data += chunk);
-            res.on('end', () => resolve(data));
+            res.on('end', () => {
+                console.log('WSAA Response status:', res.statusCode);
+                console.log('WSAA Response (first 500):', data.substring(0, 500));
+                resolve(data);
+            });
         });
-        req.on('error', reject);
+        req.on('error', (e) => {
+            console.error('WSAA Request error:', e.message);
+            reject(e);
+        });
         req.write(body);
         req.end();
     });
@@ -139,7 +146,20 @@ async function obtenerToken() {
     const tra    = generarTRA();
     const cms    = firmarTRA(tra);
     const resp   = await llamarWSAA(cms);
-    const parsed = await xml2js.parseStringPromise(resp, { explicitArray: false });
+    
+    let parsed;
+    try {
+        parsed = await xml2js.parseStringPromise(resp, { explicitArray: false });
+    } catch (parseErr) {
+        console.error('Error parseando XML del WSAA:', parseErr.message);
+        console.error('XML recibido:', resp.substring(0, 1000));
+        throw new Error('Error parseando respuesta WSAA: ' + parseErr.message);
+    }
+
+    if (!parsed['soap:Envelope'] || !parsed['soap:Envelope']['soap:Body']) {
+        console.error('Respuesta WSAA inesperada:', JSON.stringify(parsed).substring(0, 500));
+        throw new Error('Respuesta WSAA inválida — posible error de autenticación');
+    }
 
     const loginReturn = parsed['soap:Envelope']['soap:Body']['loginCmsResponse']['loginCmsReturn'];
     const ta          = await xml2js.parseStringPromise(loginReturn, { explicitArray: false });
