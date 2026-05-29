@@ -2,6 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GestOK">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GestOK</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -1191,7 +1198,7 @@
     window.db = db;
     window.fs = { collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc };
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <script src="script.js"></script>
 
 <script>
@@ -1818,6 +1825,67 @@
         }
     });
 
+</script>
+<script>
+    // ── BLOQUEAR DEVTOOLS ──────────────────────────
+    // Deshabilitar F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12') { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) { e.preventDefault(); return false; }
+        if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) { e.preventDefault(); return false; }
+        if (e.ctrlKey && (e.key === 'S' || e.key === 's')) { e.preventDefault(); return false; }
+    });
+
+    // Deshabilitar clic derecho
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+
+    // Detectar si DevTools está abierto y redirigir
+    (function() {
+        const threshold = 160;
+        setInterval(() => {
+            if (window.outerWidth - window.innerWidth > threshold ||
+                window.outerHeight - window.innerHeight > threshold) {
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#f1f5f9;font-family:sans-serif;font-size:1.5rem;font-weight:700;">⛔ Acceso no permitido</div>';
+            }
+        }, 1000);
+    })();
+
+    // ── REGISTRAR SERVICE WORKER ───────────────────
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('GestOK PWA activa'))
+                .catch(err => console.log('SW error:', err));
+        });
+    }
+
+    // ── BOTÓN DE INSTALACIÓN PWA ───────────────────
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Mostrar botón de instalación si existe
+        const btnInstall = document.getElementById('btn-instalar-pwa');
+        if (btnInstall) btnInstall.style.display = 'flex';
+    });
+
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        const btnInstall = document.getElementById('btn-instalar-pwa');
+        if (btnInstall) btnInstall.style.display = 'none';
+    });
+
+    function instalarPWA() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+        }
+    }
 </script>
 </body>
 </html>

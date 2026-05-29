@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestOK — Instalá la app</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .card {
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 48px 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            width: 90px; height: 90px;
+            background: #0f172a;
+            border-radius: 50%;
+            border: 3px solid #38bdf8;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 2.5rem; font-weight: 900; color: #38bdf8;
+        }
+        h1 { font-size: 2.2rem; font-weight: 900; margin-bottom: 8px; }
+        .sub { opacity: .5; font-size: 15px; margin-bottom: 40px; }
+        .btn-instalar {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            width: 100%; padding: 18px;
+            background: #38bdf8; color: #0f172a;
+            border: none; border-radius: 16px;
+            font-size: 1.1rem; font-weight: 800;
+            cursor: pointer; transition: .2s;
+            margin-bottom: 16px; text-decoration: none;
+        }
+        .btn-instalar:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-instalar.secondary {
+            background: rgba(56,189,248,0.1);
+            border: 1.5px solid rgba(56,189,248,0.3);
+            color: #38bdf8;
+        }
+        .steps {
+            text-align: left;
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 24px 0;
+        }
+        .steps h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; opacity: .4; margin-bottom: 16px; }
+        .step {
+            display: flex; align-items: flex-start; gap: 14px;
+            margin-bottom: 14px; font-size: 14px;
+        }
+        .step:last-child { margin-bottom: 0; }
+        .step-num {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: rgba(56,189,248,0.15);
+            border: 1.5px solid rgba(56,189,248,0.3);
+            color: #38bdf8; font-weight: 700; font-size: 12px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(34,197,94,0.1);
+            border: 1px solid rgba(34,197,94,0.3);
+            color: #22c55e;
+            border-radius: 8px; padding: 4px 12px;
+            font-size: 12px; font-weight: 700;
+            margin-bottom: 32px;
+        }
+        .footer { opacity: .3; font-size: 12px; margin-top: 24px; }
+        #pwa-section { display: none; }
+        #manual-section { display: block; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">G</div>
+    <h1>GestOK</h1>
+    <p class="sub">Sistema de gestión de ventas<br>En Lo De Otto</p>
+    <div class="badge">✅ Versión actualizada</div>
+
+    <!-- Botón de instalación automática (Chrome/Edge) -->
+    <button class="btn-instalar" id="btn-instalar-auto" onclick="instalarPWA()" style="display:none;">
+        📲 Instalar GestOK
+    </button>
+
+    <!-- Instrucciones manuales -->
+    <div id="manual-section">
+        <div class="steps">
+            <h3>Cómo instalar</h3>
+            <div class="step">
+                <div class="step-num">1</div>
+                <div>Abrí esta página en <strong>Google Chrome</strong> o <strong>Microsoft Edge</strong></div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div>Buscá el ícono de instalación <strong>⊕</strong> en la barra de direcciones (arriba a la derecha)</div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div>Hacé clic en <strong>"Instalar"</strong> y confirmá</div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div>GestOK aparece en el <strong>escritorio</strong> como una app — abrila desde ahí</div>
+            </div>
+        </div>
+    </div>
+
+    <a href="index.html" class="btn-instalar secondary">
+        🌐 Abrir GestOK en el navegador
+    </a>
+
+    <p class="footer">GestOK · En Lo De Otto · Montecarlo, Misiones</p>
+</div>
+
+<script>
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('btn-instalar-auto').style.display = 'flex';
+        document.getElementById('manual-section').style.display = 'none';
+    });
+
+    window.addEventListener('appinstalled', () => {
+        document.getElementById('btn-instalar-auto').style.display = 'none';
+        document.getElementById('manual-section').style.display = 'none';
+        document.querySelector('.card').innerHTML += '<div style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:16px;padding:20px;margin-top:20px;color:#22c55e;font-weight:700;">✅ GestOK instalado correctamente. Abrilo desde el escritorio.</div>';
+    });
+
+    function instalarPWA() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+        }
+    }
+
+    // Detectar si ya está instalado como PWA
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        window.location.href = 'index.html';
+    }
+</script>
+</body>
+</html>
