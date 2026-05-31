@@ -1,1891 +1,1065 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GestOK">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GestOK</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg:      #0f172a;
-            --surface: #1e293b;
-            --surface2:#162032;
-            --accent:  #38bdf8;
-            --success: #22c55e;
-            --danger:  #ef4444;
-            --warning: #f59e0b;
-            --purple:  #a855f7;
-            --text:    #f1f5f9;
-            --muted:   #64748b;
-            --border:  rgba(255,255,255,0.08);
-        }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        html, body {
-            height: 100%; width: 100%;
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Segoe UI', sans-serif;
-            overflow: hidden;
-        }
-
-        /* ── SECCIONES: cada una ocupa toda la pantalla ── */
-        .section {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            overflow-y: auto;
-            background: var(--bg-dark);
-            box-sizing: border-box;
-            padding: 40px;
-            z-index: 1;
-        }
-        .section.active {
-            display: block;
-        }
-        .section.center-screen.active {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ─────────────────────────────────────
-           PANTALLA LOGIN / SELECCIÓN USUARIO
-        ───────────────────────────────────── */
-        #sec-login {
-            
-            
-            gap: 0;
-        }
-        .login-brand { text-align: center; margin-bottom: 56px; }
-        .login-brand h1 { font-size: 3.8rem; font-weight: 900; letter-spacing: -3px; }
-        .login-brand p  { opacity: .45; font-size: 1.1rem; margin-top: 8px; }
-
-        .user-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            width: 100%;
-            max-width: 820px;
-        }
-        .user-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid var(--border);
-            border-radius: 22px;
-            padding: 40px 20px 32px;
-            text-align: center;
-            cursor: pointer;
-            transition: .35s cubic-bezier(.175,.885,.32,1.275);
-            backdrop-filter: blur(8px);
-        }
-        .user-card:hover {
-            transform: translateY(-10px);
-            border-color: var(--accent);
-            box-shadow: 0 16px 36px rgba(0,0,0,.45);
-            background: rgba(56,189,248,0.06);
-        }
-        .user-card.admin:hover {
-            border-color: var(--warning);
-            background: rgba(245,158,11,0.06);
-            box-shadow: 0 16px 36px rgba(0,0,0,.45);
-        }
-        .u-avatar {
-            width: 68px; height: 68px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 18px;
-            font-size: 1.6rem; font-weight: 800;
-        }
-        .av-op  { background: rgba(56,189,248,.12); color: var(--accent);  border: 2px solid rgba(56,189,248,.25); }
-        .av-adm { background: rgba(245,158,11,.12); color: var(--warning); border: 2px solid rgba(245,158,11,.25); }
-        .user-card h3   { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
-        .user-card .sub { font-size: .84rem; opacity: .45; }
-        .u-badge {
-            display: inline-block; margin-top: 16px;
-            padding: 3px 14px; border-radius: 20px;
-            font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
-        }
-        .badge-op  { background: rgba(56,189,248,.12); color: var(--accent); }
-        .badge-adm { background: rgba(245,158,11,.12); color: var(--warning); }
-
-        /* ─────────────────────────────────────
-           DASHBOARD
-        ───────────────────────────────────── */
-        #sec-dashboard {
-            align-items: center;
-            justify-content: center;
-        }
-        .dash-inner { width: 100%; max-width: 1100px; }
-        .dash-top {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 56px;
-        }
-        .dash-brand h1 { font-size: 2.6rem; font-weight: 900; letter-spacing: -2px; }
-        .dash-brand p  { opacity: .4; font-size: .95rem; margin-top: 4px; }
-
-        .user-chip {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(255,255,255,.05); border: 1px solid var(--border);
-            border-radius: 40px; padding: 8px 16px 8px 10px;
-            font-size: 13px; font-weight: 600;
-        }
-        .user-chip .chip-dot {
-            width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
-        }
-        .user-chip.admin .chip-dot { background: var(--warning); }
-        .logout-btn {
-            background: none; border: none; color: var(--danger);
-            cursor: pointer; font-size: 13px; opacity: .65; transition: .2s; margin-left: 4px;
-        }
-        .logout-btn:hover { opacity: 1; }
-
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 24px;
-        }
-        .card-menu {
-            background: rgba(255,255,255,.04);
-            border: 1px solid var(--border);
-            border-radius: 22px; padding: 44px 20px;
-            text-align: center; cursor: pointer;
-            transition: .35s cubic-bezier(.175,.885,.32,1.275);
-            backdrop-filter: blur(8px); position: relative; overflow: hidden;
-        }
-        .card-menu:hover:not(.card-locked) {
-            transform: translateY(-10px);
-            background: rgba(56,189,248,.07);
-            border-color: var(--accent);
-            box-shadow: 0 14px 32px rgba(0,0,0,.4);
-        }
-        .card-menu.card-locked {
-            cursor: not-allowed; opacity: .45; filter: grayscale(.6);
-        }
-        .card-menu i { font-size: 3.2rem; color: var(--accent); margin-bottom: 20px; display: block; }
-        .card-menu h2 { font-size: 1.25rem; letter-spacing: .5px; margin-bottom: 6px; }
-        .card-menu p  { opacity: .5; font-size: .88rem; }
-        .lock-badge {
-            position: absolute; top: 14px; right: 14px;
-            background: rgba(239,68,68,.12); color: var(--danger);
-            border: 1px solid rgba(239,68,68,.2);
-            border-radius: 20px; padding: 3px 10px; font-size: 10px; font-weight: 700;
-        }
-
-        /* ─────────────────────────────────────
-           SECCIONES INTERNAS (ventas, artículos…)
-        ───────────────────────────────────── */
-        #sec-ventas, #sec-articulos, #sec-historial, #sec-estadisticas {
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .btn-back {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 9px 20px; background: rgba(255,255,255,.04);
-            border: 1px solid var(--border); color: var(--muted);
-            border-radius: 10px; cursor: pointer; font-size: 13px;
-            font-weight: 600; margin-bottom: 28px; transition: .2s; text-decoration: none;
-        }
-        .btn-back:hover { color: var(--accent); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.06); transform: translateX(-4px); }
-
-        /* ── VENTAS ── */
-        .ventas-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; }
-        .ventas-header h1 { font-size: 22px; font-weight: 500; }
-        .ventas-header p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
-        .status-tag {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(34,197,94,.1); color: var(--success);
-            border: 1px solid rgba(34,197,94,.2); border-radius: 20px;
-            padding: 5px 14px; font-size: 12px; font-weight: 600;
-        }
-        .status-tag .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
-
-        .scanner-wrap { position: relative; margin-bottom: 20px; }
-        .scanner-wrap i { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--accent); font-size: 17px; pointer-events: none; }
-        #lector-barras {
-            width: 100%; background: var(--surface2);
-            border: 1.5px solid rgba(56,189,248,.25); border-radius: 14px;
-            padding: 15px 18px 15px 52px; color: var(--accent);
-            font-size: 16px; font-family: 'Courier New', monospace; font-weight: 600;
-            outline: none; transition: .25s; letter-spacing: 1px;
-        }
-        #lector-barras:focus { border-color: var(--accent); background: rgba(56,189,248,.04); }
-        #lector-barras::placeholder { color: var(--muted); font-family: 'Segoe UI', sans-serif; font-weight: 400; letter-spacing: 0; font-size: 14px; }
-        #lector-barras.scan-ok  { border-color: var(--success); }
-        #lector-barras.scan-err { border-color: var(--danger); }
-
-        .caja-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
-
-        .items-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
-        .items-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .items-table thead tr { background: rgba(0,0,0,.25); border-bottom: 1px solid var(--border); }
-        .items-table thead th { padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; text-align: left; }
-        .items-table thead th:nth-child(3) { text-align: center; }
-        .items-table thead th:last-child { width: 44px; }
-        .items-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.05); transition: background .15s; }
-        .items-table tbody tr:last-child { border-bottom: none; }
-        .items-table tbody tr:hover { background: rgba(255,255,255,.025); }
-        .items-table td { padding: 13px 16px; vertical-align: middle; }
-        .item-name  { font-size: 14px; font-weight: 500; }
-        .item-cod   { font-size: 11px; color: var(--muted); font-family: monospace; margin-top: 2px; }
-        .item-price { font-size: 14px; color: var(--muted); }
-        .qty-badge  { background: rgba(56,189,248,.12); color: var(--accent); border-radius: 8px; padding: 4px 10px; font-size: 13px; font-weight: 700; display: inline-block; }
-        .del-item   { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.15); color: var(--danger); border-radius: 8px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: .2s; font-size: 12px; }
-        .del-item:hover { background: rgba(239,68,68,.18); }
-        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 260px; color: var(--muted); gap: 10px; }
-        .empty-state i { font-size: 2.4rem; opacity: .2; }
-        .empty-state p { font-size: 13px; }
-        .items-footer { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid var(--border); background: rgba(0,0,0,.15); }
-        .items-count  { font-size: 12px; color: var(--muted); }
-        .vaciar-link  { font-size: 12px; color: var(--danger); cursor: pointer; opacity: .65; transition: .2s; background: none; border: none; }
-        .vaciar-link:hover { opacity: 1; }
-
-        .pay-panel { display: flex; flex-direction: column; gap: 14px; }
-        .pay-card  { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; }
-        .pay-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .total-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; text-align: center; }
-        .total-price { font-size: 50px; font-weight: 800; color: var(--accent); line-height: 1; margin: 8px 0 4px; }
-        .total-meta  { font-size: 12px; color: var(--muted); }
-
-        #tipo-pago-visual { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        .meth-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer; transition: .2s; }
-        .meth-btn:hover { border-color: rgba(56,189,248,.3); }
-        .meth-btn.active { border-color: var(--accent); background: rgba(56,189,248,.08); }
-        .meth-btn.active i, .meth-btn.active .meth-name { color: var(--accent); }
-        .meth-btn i { font-size: 18px; margin-bottom: 4px; display: block; color: var(--muted); }
-        .meth-name  { font-size: 11px; font-weight: 600; color: var(--muted); }
-
-        .cobrar-btn { background: var(--success); border: none; border-radius: 14px; padding: 17px; color: white; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: .2s; width: 100%; }
-        .cobrar-btn:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(34,197,94,.28); }
-        .cobrar-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        /* ── INPUTS GLOBALES ── */
-        select, .form-input { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px 14px; border-radius: 10px; width: 100%; margin-bottom: 14px; font-size: 14px; outline: none; transition: border-color .2s; }
-        select:focus, .form-input:focus { border-color: rgba(56,189,248,.4); }
-
-        .btn { padding: 13px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: .95rem; transition: .2s; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
-        .btn-confirm { background: var(--success); color: white; }
-        .btn-confirm:hover { filter: brightness(1.08); }
-        .btn-print   { background: rgba(56,189,248,.1); color: var(--accent); border: 1px solid rgba(56,189,248,.25); }
-        .btn-print:hover { background: rgba(56,189,248,.2); }
-        .btn-clear   { background: rgba(239,68,68,.08); color: var(--danger); border: 1px solid rgba(239,68,68,.15); }
-        .btn-clear:hover { background: rgba(239,68,68,.15); }
-
-        /* ── TABLAS GLOBALES ── */
-        .v-table { width: 100%; border-collapse: collapse; margin-top: 18px; background: rgba(255,255,255,.03); border-radius: 14px; overflow: hidden; }
-        .v-table th { text-align: left; padding: 14px 18px; background: rgba(0,0,0,.3); color: var(--accent); font-size: .78rem; text-transform: uppercase; letter-spacing: .8px; }
-        .v-table td { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 14px; }
-        .v-table tr:hover td { background: rgba(255,255,255,.02); }
-
-        /* ── HISTORIAL RESUMEN ── */
-        .resumen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; margin-bottom: 26px; }
-        .resumen-card { padding: 16px; border-radius: 14px; border: 1px solid; }
-        .resumen-card span { font-size: 10px; opacity: .6; text-transform: uppercase; letter-spacing: .8px; display: block; margin-bottom: 4px; }
-        .resumen-card div  { font-weight: 900; font-size: 1.7rem; }
-
-        /* ── PANTALLA BLOQUEADA ── */
-        #sec-bloqueado {   text-align: center; }
-        .lock-icon-big { font-size: 3.5rem; color: var(--danger); opacity: .7; margin-bottom: 18px; }
-        #sec-bloqueado h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
-        #sec-bloqueado p  { opacity: .5; margin-bottom: 28px; }
-
-        /* ── MODALES ── */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.82); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-window  { background: var(--surface); padding: 36px; border-radius: 24px; width: 100%; max-width: 460px; border: 1px solid var(--border); }
-
-        /* Modal cobro */
-        .modal-total-display { font-size: 46px; font-weight: 900; color: white; text-align: center; margin-bottom: 20px; }
-        .modal-input { width: 100%; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--text); font-size: 20px; font-family: monospace; font-weight: 700; text-align: center; outline: none; transition: .2s; margin-bottom: 12px; }
-        .modal-input:focus { border-color: var(--accent); }
-        .vuelto-box    { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2); border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 18px; }
-        .vuelto-label  { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-        .vuelto-amount { font-size: 28px; font-weight: 800; color: var(--success); }
-
-        /* Modal PIN */
-        .pin-modal-inner { max-width: 320px; text-align: center; }
-        .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 22px 0; }
-        .pin-dot  { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); transition: .2s; }
-        .pin-dot.filled { background: var(--warning); border-color: var(--warning); }
-        .pin-pad  { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
-        .pin-key  { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 12px; padding: 15px; font-size: 1.25rem; font-weight: 700; cursor: pointer; transition: .15s; text-align: center; }
-        .pin-key:hover  { background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3); color: var(--warning); }
-        .pin-key:active { transform: scale(.95); }
-        .pin-key-del    { color: var(--danger); }
-        .pin-key-0      { grid-column: 2; }
-        .pin-error      { color: var(--danger); font-size: 13px; min-height: 20px; margin-top: 6px; }
-        .pin-shake { animation: shake .35s ease; }
-        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 80%{transform:translateX(-4px)} }
-
-        /* ── TICKET IMPRESIÓN ── */
-        #ticket-print { display: none; }
-        @media print {
-            html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
-            body > * { display: none !important; }
-            .modal-overlay { display: none !important; }
-
-            #ticket-print {
-                display: block !important;
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 72mm !important;
-                max-width: 72mm !important;
-                margin: 0 !important;
-                padding: 3mm 4mm !important;
-                background: white !important;
-                color: black !important;
-                font-family: 'Courier New', monospace !important;
-                font-size: 9pt !important;
-                line-height: 1.4 !important;
-                word-wrap: break-word !important;
-                overflow-wrap: break-word !important;
-                box-sizing: border-box !important;
-                z-index: 99999 !important;
-            }
-            #ticket-print * {
-                color: black !important;
-                background: white !important;
-                max-width: 100% !important;
-                word-wrap: break-word !important;
-                white-space: normal !important;
-            }
-            #ticket-print table {
-                width: 100% !important;
-                table-layout: fixed !important;
-                border-collapse: collapse !important;
-            }
-            #ticket-print td {
-                word-wrap: break-word !important;
-                overflow-wrap: break-word !important;
-                vertical-align: top !important;
-                padding: 1px 2px !important;
-            }
-            @page {
-                size: 80mm auto;
-                margin: 0mm;
-            }
-        }
-        @media (max-width: 900px) { .caja-grid { grid-template-columns: 1fr; } .user-grid { grid-template-columns: 1fr; } }
-
-        /* ════════════════════════════════════════
-           MODO PANTALLA DIVIDIDA
-        ════════════════════════════════════════ */
-        #sec-split {
-            padding: 0;
-            display: none;
-        }
-        #sec-split.active {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .split-panel {
-            height: 100vh;
-            overflow-y: auto;
-            box-sizing: border-box;
-            padding: 20px;
-            position: relative;
-        }
-        .split-panel:first-child {
-            border-right: 2px solid rgba(56,189,248,0.2);
-            background: var(--bg-dark);
-        }
-        .split-panel:last-child {
-            background: #0d1525;
-        }
-
-        .split-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--glass-border);
-        }
-        .split-user-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-        .split-user-badge.v1 { background: rgba(56,189,248,0.12); color: var(--accent); border: 1px solid rgba(56,189,248,0.25); }
-        .split-user-badge.v2 { background: rgba(168,85,247,0.12); color: var(--purple); border: 1px solid rgba(168,85,247,0.25); }
-        .split-user-badge .dot { width: 7px; height: 7px; border-radius: 50%; }
-        .split-user-badge.v1 .dot { background: var(--accent); }
-        .split-user-badge.v2 .dot { background: var(--purple); }
-
-        .split-exit-btn {
-            background: rgba(239,68,68,0.08);
-            border: 1px solid rgba(239,68,68,0.2);
-            color: var(--danger);
-            border-radius: 10px;
-            padding: 7px 16px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: .2s;
-        }
-        .split-exit-btn:hover { background: rgba(239,68,68,0.18); }
-
-        /* Scanner split */
-        .split-scanner-wrap { position: relative; margin-bottom: 14px; }
-        .split-scanner-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; }
-        .split-scanner-wrap.v1 i { color: var(--accent); }
-        .split-scanner-wrap.v2 i { color: var(--purple); }
-        .split-input {
-            width: 100%;
-            background: var(--surface2);
-            border-radius: 12px;
-            padding: 13px 14px 13px 44px;
-            font-size: 15px;
-            font-family: 'Courier New', monospace;
-            font-weight: 600;
-            outline: none;
-            transition: .25s;
-            letter-spacing: 1px;
-            box-sizing: border-box;
-        }
-        .split-input.v1 { border: 1.5px solid rgba(56,189,248,0.25); color: var(--accent); }
-        .split-input.v1:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.07); }
-        .split-input.v2 { border: 1.5px solid rgba(168,85,247,0.25); color: var(--purple); }
-        .split-input.v2:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(168,85,247,0.07); }
-        .split-input::placeholder { color: var(--muted); font-family: 'Segoe UI', sans-serif; font-weight: 400; letter-spacing: 0; font-size: 13px; }
-        .split-input.scan-ok  { border-color: var(--success) !important; }
-        .split-input.scan-err { border-color: var(--danger) !important; }
-
-        /* Tabla split */
-        .split-items-panel { background: var(--sidebar-bg); border: 1px solid var(--glass-border); border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
-        .split-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .split-table thead tr { background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--glass-border); }
-        .split-table thead th { padding: 10px 12px; font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; text-align: left; }
-        .split-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
-        .split-table tbody tr:hover { background: rgba(255,255,255,0.02); }
-        .split-table tbody tr:last-child { border-bottom: none; }
-        .split-table td { padding: 10px 12px; vertical-align: middle; font-size: 13px; }
-        .split-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 160px; color: var(--muted); gap: 8px; }
-        .split-empty i { font-size: 2rem; opacity: .2; }
-        .split-empty p { font-size: 12px; margin: 0; }
-        .split-footer { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.15); font-size: 12px; color: var(--muted); }
-        .split-vaciar { background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer; opacity: .65; }
-        .split-vaciar:hover { opacity: 1; }
-
-        /* Total split */
-        .split-total-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--sidebar-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            padding: 14px 20px;
-            margin-bottom: 12px;
-        }
-        .split-total-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-        .split-total-amount { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .split-total-amount.v1 { color: var(--accent); }
-        .split-total-amount.v2 { color: var(--purple); }
-
-        /* Metodos split */
-        .split-methods { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 12px; }
-        .split-meth {
-            background: var(--surface2);
-            border: 1.5px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 8px 4px;
-            text-align: center;
-            cursor: pointer;
-            transition: .2s;
-        }
-        .split-meth i { font-size: 14px; display: block; margin-bottom: 3px; color: var(--muted); }
-        .split-meth span { font-size: 9px; font-weight: 600; color: var(--muted); display: block; }
-        .split-meth.active.v1 { border-color: var(--accent); background: rgba(56,189,248,0.08); }
-        .split-meth.active.v1 i, .split-meth.active.v1 span { color: var(--accent); }
-        .split-meth.active.v2 { border-color: var(--purple); background: rgba(168,85,247,0.08); }
-        .split-meth.active.v2 i, .split-meth.active.v2 span { color: var(--purple); }
-
-        /* Botón cobrar split */
-        .split-cobrar {
-            width: 100%;
-            border: none;
-            border-radius: 12px;
-            padding: 15px;
-            color: white;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: .2s;
-            margin-bottom: 8px;
-        }
-        .split-cobrar.v1 { background: var(--success); }
-        .split-cobrar.v2 { background: var(--purple); }
-        .split-cobrar:disabled { opacity: .35; cursor: not-allowed; }
-        .split-cobrar:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
-
-        /* Modal split cobro */
-        #modal-split-cobro {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(8px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 3000;
-        }
-        #modal-split-cobro.open { display: flex; }
-
-
-        .btn-split-trigger {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 9px 18px; background: rgba(56,189,248,0.08);
-            border: 1px solid rgba(56,189,248,0.25); color: var(--accent);
-            border-radius: 10px; cursor: pointer; font-size: 13px;
-            font-weight: 600; transition: .2s; white-space: nowrap;
-        }
-        .btn-split-trigger:hover { background: rgba(56,189,248,0.18); transform: scale(1.02); }
-
-
-        /* ── MODO PRESUPUESTO ── */
-        .presupuesto-banner {
-            display: none;
-            background: rgba(245,158,11,0.12);
-            border: 1px solid rgba(245,158,11,0.35);
-            border-radius: 12px;
-            padding: 10px 18px;
-            margin-bottom: 16px;
-            color: var(--warning);
-            font-size: 13px;
-            font-weight: 600;
-            align-items: center;
-            gap: 10px;
-        }
-        .presupuesto-banner.visible { display: flex; }
-        .cobrar-btn.modo-presupuesto { background: var(--warning) !important; }
-    </style>
-</head>
-<body>
-
-<div id="ticket-print"></div>
-
-<!-- ══════════════════════════════════════
-     SEC-LOGIN — Pantalla de usuarios
-══════════════════════════════════════ -->
-<section id="sec-login" class="section active center-screen">
-    <div class="login-brand">
-        <h1>Gest<span style="color:var(--accent);">OK</span></h1>
-        <p>Seleccioná tu usuario para continuar</p>
-    </div>
-    <div class="user-grid">
-        <!-- Sandra — Vendedora -->
-        <div class="user-card" onclick="abrirPinUsuario('sandra')">
-            <div class="u-avatar av-op">S</div>
-            <h3>Sandra</h3>
-            <p class="sub">Acceso solo a ventas</p>
-            <span class="u-badge badge-op"><i class="fas fa-lock" style="font-size:9px;"></i> Vendedora</span>
-        </div>
-
-        <!-- Tamara — Admin -->
-        <div class="user-card admin-card" onclick="abrirPinUsuario('tamara')">
-            <div class="u-avatar avatar-a">T</div>
-            <h3>Tamara</h3>
-            <p class="sub">Acceso completo al sistema</p>
-            <span class="u-badge badge-adm"><i class="fas fa-lock" style="font-size:9px;"></i> Administradora</span>
-        </div>
-
-        <!-- Fabian — Admin -->
-        <div class="user-card admin-card" onclick="abrirPinUsuario('fabian')">
-            <div class="u-avatar avatar-a">F</div>
-            <h3>Fabian</h3>
-            <p class="sub">Acceso completo al sistema</p>
-            <span class="u-badge badge-adm"><i class="fas fa-lock" style="font-size:9px;"></i> Administrador</span>
-        </div>
-    </div>
-    </div>
-</section>
-
-<!-- ══════════════════════════════════════
-     SEC-DASHBOARD — Panel principal
-══════════════════════════════════════ -->
-<section id="sec-dashboard" class="section">
-    <div class="dash-inner">
-        <div class="dash-top">
-            <div class="dash-brand">
-                <h1>Gest<span style="color:var(--accent);">OK</span></h1>
-                <p>Gestión de Inventario y Ventas Inteligente</p>
-            </div>
-            <div id="user-chip-wrap"></div>
-        </div>
-        <div class="menu-grid">
-            <div class="card-menu" id="card-ventas" onclick="verSeccion('ventas')">
-                <i class="fas fa-cash-register"></i>
-                <h2>VENTAS</h2>
-                <p>Terminal de caja y facturación.</p>
-            </div>
-            <div class="card-menu card-locked" id="card-articulos" onclick="verSeccion('articulos')">
-                <span class="lock-badge"><i class="fas fa-lock"></i> Solo Admin</span>
-                <i class="fas fa-boxes-stacked"></i>
-                <h2>ARTÍCULOS</h2>
-                <p>Gestión de stock y precios.</p>
-            </div>
-            <div class="card-menu card-locked" id="card-historial" onclick="verSeccion('historial')">
-                <span class="lock-badge"><i class="fas fa-lock"></i> Solo Admin</span>
-                <i class="fas fa-history"></i>
-                <h2>HISTORIAL</h2>
-                <p>Revisar tickets y cierres diarios.</p>
-            </div>
-            <div class="card-menu card-locked" id="card-estadisticas" onclick="verSeccion('estadisticas')">
-                <span class="lock-badge"><i class="fas fa-lock"></i> Solo Admin</span>
-                <i class="fas fa-chart-bar"></i>
-                <h2>ESTADÍSTICAS</h2>
-                <p>Análisis de rendimiento mensual.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ══════════════════════════════════════
-     SEC-BLOQUEADO
-══════════════════════════════════════ -->
-<section id="sec-bloqueado" class="section">
-    <i class="fas fa-lock lock-icon-big"></i>
-    <h2>Acceso restringido</h2>
-    <p>Solo el Usuario A tiene permiso a esta información.</p>
-    <button class="btn-back" onclick="verSeccion('dashboard')">
-        <i class="fas fa-arrow-left"></i> Volver al inicio
-    </button>
-</section>
-
-<!-- ══════════════════════════════════════
-     SEC-VENTAS
-══════════════════════════════════════ -->
-<section id="sec-ventas" class="section">
-    <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
-
-    <div class="ventas-header">
-        <div>
-            <h1>Terminal de Venta</h1>
-            <p>Escaneá o ingresá el código del producto</p>
-        </div>
-        <button class="btn-split-trigger" onclick="entrarPantallaDividida()">
-            <i class="fas fa-columns"></i> Dividir pantalla
-        </button>
-        <div class="status-tag"><div class="dot"></div> Listo</div>
-    </div>
-
-    <div style="display:flex; gap:12px; align-items:center; margin-bottom:20px;">
-        <div class="scanner-wrap" style="flex:1; margin-bottom:0;">
-            <i class="fas fa-barcode"></i>
-            <input type="text" id="lector-barras" placeholder="Escanear código o ingresar manualmente..." onkeydown="manejarLector(event)" autocomplete="off">
-        </div>
-        <button onclick="abrirBuscadorProductos()" style="
-            display:inline-flex; align-items:center; gap:8px;
-            padding:14px 20px; background:rgba(56,189,248,0.1);
-            border:1.5px solid rgba(56,189,248,0.3); color:var(--accent);
-            border-radius:14px; cursor:pointer; font-size:13px; font-weight:700;
-            white-space:nowrap; transition:.2s; flex-shrink:0;
-        " onmouseenter="this.style.background='rgba(56,189,248,0.2)'"
-           onmouseleave="this.style.background='rgba(56,189,248,0.1)'">
-            <i class="fas fa-search"></i> Agregar producto
-        </button>
-    </div>
-
-    <div class="caja-grid">
-        <div class="items-panel">
-            <table class="items-table">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Precio unit.</th>
-                        <th style="text-align:center;">Cant.</th>
-                        <th>Subtotal</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="lista-ventas-items">
-                    <tr><td colspan="5">
-                        <div class="empty-state">
-                            <i class="fas fa-shopping-cart"></i>
-                            <p>El carrito está vacío</p>
-                            <p style="font-size:12px;opacity:.5;">Escaneá un producto para comenzar</p>
-                        </div>
-                    </td></tr>
-                </tbody>
-            </table>
-            <div class="items-footer">
-                <span class="items-count" id="items-count-label">0 artículos</span>
-                <button class="vaciar-link" onclick="limpiarCarritoCompleto()"><i class="fas fa-trash-alt"></i> Vaciar carrito</button>
-            </div>
-        </div>
-
-        <aside class="pay-panel">
-            <div class="pay-card">
-                <div class="pay-label">Tipo de comprobante</div>
-                <select id="tipo-doc" onchange="onTipoDocChange()">
-                    <option value="Ticket No Fiscal">Ticket No Fiscal</option>
-                    <option value="Factura C">Factura C</option>
-                    <option value="Factura B">Factura B</option>
-                    <option value="Presupuesto">Presupuesto</option>
-                </select>
-            </div>
-            <div class="total-card">
-                <div class="pay-label">Total a cobrar</div>
-                <div class="total-price" id="total-final">$ 0</div>
-                <div class="total-meta" id="total-meta-label">—</div>
-            </div>
-            <div class="pay-card">
-                <div class="pay-label">Método de pago</div>
-                <input type="hidden" id="tipo-pago" value="Efectivo">
-                <div id="tipo-pago-visual">
-                    <div class="meth-btn active" onclick="seleccionarMetodo(this,'Efectivo')">
-                        <i class="fas fa-money-bill-wave"></i><div class="meth-name">Efectivo</div>
-                    </div>
-                    <div class="meth-btn" onclick="seleccionarMetodo(this,'Tarjeta de Debito')">
-                        <i class="fas fa-credit-card"></i><div class="meth-name">Débito</div>
-                    </div>
-                    <div class="meth-btn" onclick="seleccionarMetodo(this,'Tarjeta de Credito')">
-                        <i class="fas fa-credit-card"></i><div class="meth-name">Crédito</div>
-                    </div>
-                    <div class="meth-btn" onclick="seleccionarMetodo(this,'Transferencia')">
-                        <i class="fas fa-exchange-alt"></i><div class="meth-name">Transferencia</div>
-                    </div>
-                </div>
-            </div>
-            <button class="cobrar-btn" id="cobrar-btn" onclick="abrirModalCobro()" disabled>
-                <i class="fas fa-check-circle"></i> COBRAR
-            </button>
-            <button class="btn btn-print" style="margin-top:0;" onclick="abrirModalCobroImprimir()">
-                <i class="fas fa-print"></i> Cobrar e imprimir ticket
-            </button>
-        </aside>
-    </div>
-</section>
-
-
-    <!-- ══ PANTALLA DIVIDIDA ══ -->
-    <div id="sec-split" class="section">
-
-        <!-- PANEL V1 -->
-        <div class="split-panel" id="split-left">
-            <div class="split-header">
-                <div class="split-user-badge v1">
-                    <div class="dot"></div>
-                    <span id="split-label-v1">Usuario V1</span>
-                </div>
-                <button class="split-exit-btn" onclick="salirPantallaDividida()">
-                    <i class="fas fa-compress-alt"></i> Salir del modo dividido
-                </button>
-            </div>
-            <div class="split-scanner-wrap v1">
-                <i class="fas fa-barcode"></i>
-                <input class="split-input v1" id="split-input-1" placeholder="Escanear producto..." onkeydown="splitManejarLector(event,1)" autocomplete="off">
-            </div>
-            <div class="split-items-panel">
-                <table class="split-table">
-                    <thead><tr>
-                        <th>Producto</th><th style="width:90px;">Precio</th>
-                        <th style="width:55px;text-align:center;">Cant.</th>
-                        <th style="width:80px;">Subtotal</th><th style="width:36px;"></th>
-                    </tr></thead>
-                    <tbody id="split-items-1">
-                        <tr><td colspan="5"><div class="split-empty"><i class="fas fa-shopping-cart"></i><p>Carrito vacio</p></div></td></tr>
-                    </tbody>
-                </table>
-                <div class="split-footer">
-                    <span id="split-count-1">0 articulos</span>
-                    <button class="split-vaciar" onclick="splitVaciar(1)"><i class="fas fa-trash-alt"></i> Vaciar</button>
-                </div>
-            </div>
-            <div class="split-total-row">
-                <div class="split-total-label">Total a cobrar</div>
-                <div class="split-total-amount v1" id="split-total-1">$ 0</div>
-            </div>
-            <div class="split-methods" id="split-methods-1">
-                <div class="split-meth active v1" onclick="splitSelMetodo(1,this,'Efectivo')"><i class="fas fa-money-bill-wave"></i><span>Efectivo</span></div>
-                <div class="split-meth" onclick="splitSelMetodo(1,this,'Tarjeta de Debito')"><i class="fas fa-credit-card"></i><span>Debito</span></div>
-                <div class="split-meth" onclick="splitSelMetodo(1,this,'Tarjeta de Credito')"><i class="fas fa-credit-card"></i><span>Credito</span></div>
-                <div class="split-meth" onclick="splitSelMetodo(1,this,'Transferencia')"><i class="fas fa-exchange-alt"></i><span>Transf.</span></div>
-            </div>
-            <input type="hidden" id="split-metodo-1" value="Efectivo">
-            <button class="split-cobrar v1" id="split-cobrar-1" onclick="splitAbrirCobro(1)" disabled>
-                <i class="fas fa-check-circle"></i> COBRAR
-            </button>
-        </div>
-
-        <!-- PANEL V2 -->
-        <div class="split-panel" id="split-right">
-            <div class="split-header">
-                <div class="split-user-badge v2">
-                    <div class="dot"></div>
-                    <span id="split-label-v2">Usuario V2</span>
-                </div>
-            </div>
-            <div class="split-scanner-wrap v2">
-                <i class="fas fa-barcode"></i>
-                <input class="split-input v2" id="split-input-2" placeholder="Escanear producto..." onkeydown="splitManejarLector(event,2)" autocomplete="off">
-            </div>
-            <div class="split-items-panel">
-                <table class="split-table">
-                    <thead><tr>
-                        <th>Producto</th><th style="width:90px;">Precio</th>
-                        <th style="width:55px;text-align:center;">Cant.</th>
-                        <th style="width:80px;">Subtotal</th><th style="width:36px;"></th>
-                    </tr></thead>
-                    <tbody id="split-items-2">
-                        <tr><td colspan="5"><div class="split-empty"><i class="fas fa-shopping-cart"></i><p>Carrito vacio</p></div></td></tr>
-                    </tbody>
-                </table>
-                <div class="split-footer">
-                    <span id="split-count-2">0 articulos</span>
-                    <button class="split-vaciar" onclick="splitVaciar(2)"><i class="fas fa-trash-alt"></i> Vaciar</button>
-                </div>
-            </div>
-            <div class="split-total-row">
-                <div class="split-total-label">Total a cobrar</div>
-                <div class="split-total-amount v2" id="split-total-2">$ 0</div>
-            </div>
-            <div class="split-methods" id="split-methods-2">
-                <div class="split-meth active v2" onclick="splitSelMetodo(2,this,'Efectivo')"><i class="fas fa-money-bill-wave"></i><span>Efectivo</span></div>
-                <div class="split-meth" onclick="splitSelMetodo(2,this,'Tarjeta de Debito')"><i class="fas fa-credit-card"></i><span>Debito</span></div>
-                <div class="split-meth" onclick="splitSelMetodo(2,this,'Tarjeta de Credito')"><i class="fas fa-credit-card"></i><span>Credito</span></div>
-                <div class="split-meth" onclick="splitSelMetodo(2,this,'Transferencia')"><i class="fas fa-exchange-alt"></i><span>Transf.</span></div>
-            </div>
-            <input type="hidden" id="split-metodo-2" value="Efectivo">
-            <button class="split-cobrar v2" id="split-cobrar-2" onclick="splitAbrirCobro(2)" disabled>
-                <i class="fas fa-check-circle"></i> COBRAR
-            </button>
-        </div>
-    </div>
-
-    <!-- ══ MODAL SELECCIÓN USUARIO PANTALLA DIVIDIDA ══ -->
-    <div id="modal-split-user" class="modal-overlay">
-        <div class="modal-window" style="max-width:420px; text-align:center;">
-            <div style="font-size:2rem; margin-bottom:8px;">⚡</div>
-            <h3 style="margin:0 0 4px; font-size:18px; font-weight:600;">Pantalla dividida</h3>
-            <p style="opacity:.45; font-size:13px; margin:0 0 20px;">¿Con qué usuario querés compartir la pantalla?</p>
-
-            <div id="split-user-cards" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
-
-            <!-- PIN para el segundo usuario -->
-            <div id="split-pin-section" style="display:none;">
-                <div style="font-size:1.5rem; margin-bottom:6px;" id="split-pin-icon">🔐</div>
-                <p style="font-size:14px; font-weight:600; margin:0 0 4px;" id="split-pin-nombre"></p>
-                <p style="opacity:.45; font-size:12px; margin:0 0 16px;">Ingresá el PIN del segundo usuario</p>
-                <div class="pin-dots" id="split-pin-dots" style="justify-content:center;">
-                    <div class="pin-dot" id="split-dot-0"></div>
-                    <div class="pin-dot" id="split-dot-1"></div>
-                    <div class="pin-dot" id="split-dot-2"></div>
-                    <div class="pin-dot" id="split-dot-3"></div>
-                    <div class="pin-dot" id="split-dot-4"></div>
-                    <div class="pin-dot" id="split-dot-5"></div>
-                </div>
-                <div class="pin-pad" style="margin-top:16px;">
-                    <div class="pin-key" onclick="splitPinPresionar('1')">1</div>
-                    <div class="pin-key" onclick="splitPinPresionar('2')">2</div>
-                    <div class="pin-key" onclick="splitPinPresionar('3')">3</div>
-                    <div class="pin-key" onclick="splitPinPresionar('4')">4</div>
-                    <div class="pin-key" onclick="splitPinPresionar('5')">5</div>
-                    <div class="pin-key" onclick="splitPinPresionar('6')">6</div>
-                    <div class="pin-key" onclick="splitPinPresionar('7')">7</div>
-                    <div class="pin-key" onclick="splitPinPresionar('8')">8</div>
-                    <div class="pin-key" onclick="splitPinPresionar('9')">9</div>
-                    <div class="pin-key pin-key-del" onclick="splitPinBorrar()"><i class="fas fa-delete-left"></i></div>
-                    <div class="pin-key pin-key-0" onclick="splitPinPresionar('0')">0</div>
-                </div>
-                <div class="pin-error" id="split-pin-error"></div>
-                <button class="btn btn-clear" style="margin-top:12px;" onclick="splitVolverSeleccion()">← Volver</button>
-            </div>
-
-            <button class="btn btn-clear" id="split-cancelar-btn" onclick="cerrarModalSplitUser()" style="margin-top:4px;">CANCELAR</button>
-        </div>
-    </div>
-
-    <!-- Modal cobro split -->
-    <div id="modal-split-cobro" class="modal-overlay">
-        <div class="modal-window" style="max-width:420px;">
-            <h2 style="margin-top:0;text-align:center;font-size:18px;font-weight:500;color:var(--muted);">Cerrar venta</h2>
-            <input type="hidden" id="split-cobro-panel">
-            <div class="modal-cobro-total" id="split-cobro-total">$ 0</div>
-            <input type="number" id="split-recibido" class="modal-recibido" placeholder="Monto recibido..." oninput="splitCalcVuelto()">
-            <div class="vuelto-box">
-                <div class="vuelto-label">Vuelto</div>
-                <div class="vuelto-amount" id="split-vuelto">$ 0</div>
-            </div>
-            <button class="cobrar-btn" onclick="splitFinalizar(false)" style="margin-bottom:10px;">
-                <i class="fas fa-check"></i> CONFIRMAR COBRO
-            </button>
-            <button class="btn btn-print" onclick="splitFinalizar(true)" style="margin-bottom:10px;">
-                <i class="fas fa-print"></i> Cobrar e imprimir
-            </button>
-            <button class="btn btn-clear" onclick="splitCerrarCobro()">CANCELAR</button>
-        </div>
-    </div>
-
-<!-- ══════════════════════════════════════
-     SEC-ARTÍCULOS
-══════════════════════════════════════ -->
-<section id="sec-articulos" class="section">
-    <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
-        <h1>Inventario</h1>
-        <button class="btn btn-confirm" style="width:auto;padding:11px 26px;" onclick="abrirModalProducto()">
-            <i class="fas fa-plus"></i> NUEVO PRODUCTO
-        </button>
-    </div>
-    <input type="text" class="form-input" placeholder="🔍 Buscar por nombre o código..." oninput="filtrarArticulos(this.value)">
-    <table class="v-table">
-        <thead><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
-        <tbody id="tabla-inventario-body"></tbody>
-    </table>
-</section>
-
-<!-- ══════════════════════════════════════
-     SEC-HISTORIAL
-══════════════════════════════════════ -->
-<section id="sec-historial" class="section">
-    <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
-        <h1>Cierres de Caja</h1>
-        <input type="date" id="filtro-fecha" class="form-input" style="width:auto;margin:0;" onchange="cargarHistorial()">
-    </div>
-    <div class="resumen-grid">
-        <div class="resumen-card" style="background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);">
-            <span>Efectivo</span><div id="res-efectivo" style="color:var(--success);">$ 0</div>
-        </div>
-        <div class="resumen-card" style="background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.2);">
-            <span>T. Crédito</span><div id="res-credito" style="color:var(--accent);">$ 0</div>
-        </div>
-        <div class="resumen-card" style="background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.2);">
-            <span>T. Débito</span><div id="res-debito" style="color:var(--purple);">$ 0</div>
-        </div>
-        <div class="resumen-card" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2);">
-            <span>Transferencia</span><div id="res-transf" style="color:var(--warning);">$ 0</div>
-        </div>
-    </div>
-    <table class="v-table">
-        <thead><tr><th>Hora</th><th>Método</th><th>Total</th><th>Comprobante</th></tr></thead>
-        <tbody id="tabla-historial-body"></tbody>
-    </table>
-</section>
-
-<!-- ══════════════════════════════════════
-     SEC-ESTADÍSTICAS
-══════════════════════════════════════ -->
-<section id="sec-estadisticas" class="section">
-    <button class="btn-back" onclick="verSeccion('dashboard')"><i class="fas fa-arrow-left"></i> VOLVER AL INICIO</button>
-
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;">
-        <div>
-            <h1 style="margin:0;">Estadísticas de Ventas</h1>
-            <p style="opacity:.45;font-size:13px;margin:4px 0 0;">Rendimiento por vendedor e histórico de ventas</p>
-        </div>
-        <div style="display:flex;gap:10px;">
-            <select id="tipo-grafica" class="form-input" style="width:auto;margin:0;" onchange="cargarEstadisticas()">
-                <option value="diaria">Gráfica Diaria</option>
-                <option value="mensual">Gráfica Mensual</option>
-            </select>
-            <input type="month" id="filtro-mes-estadistica" class="form-input" style="width:auto;margin:0;" onchange="cargarEstadisticas()">
-        </div>
-    </div>
-
-    <!-- Gráfico general -->
-    <div style="background:rgba(255,255,255,.03);padding:28px;border-radius:22px;min-height:320px;border:1px solid var(--glass-border);margin-bottom:28px;">
-        <canvas id="graficoGeneral" height="100"></canvas>
-    </div>
-
-    <!-- Desglose por vendedor -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
-        <i class="fas fa-users" style="color:var(--accent);font-size:18px;"></i>
-        <h2 style="margin:0;font-size:18px;font-weight:600;">Rendimiento por Vendedor</h2>
-        <span style="font-size:12px;opacity:.4;margin-left:4px;">(histórico total)</span>
-    </div>
-    <div id="tabla-vendedores">
-        <p style="opacity:.4;text-align:center;padding:30px;">Cargando datos...</p>
-    </div>
-
-</section>
-
-<!-- ══════════════════════════════════════
-     MODAL COBRO
-══════════════════════════════════════ -->
-    <!-- ══ MODAL BUSCADOR DE PRODUCTOS ══ -->
-    <div id="modal-buscador" class="modal-overlay">
-        <div class="modal-window" style="max-width:700px; width:95%; padding:28px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-                <h3 style="margin:0; font-size:18px;"><i class="fas fa-search" style="color:var(--accent); margin-right:8px;"></i>Buscar producto</h3>
-                <button onclick="cerrarBuscadorProductos()" style="background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer;">✕</button>
-            </div>
-
-            <input type="text" id="buscador-input"
-                class="form-input"
-                placeholder="🔍 Escribí el nombre del producto..."
-                oninput="filtrarBuscador(this.value)"
-                autocomplete="off"
-                style="margin-bottom:12px; font-size:15px;">
-
-            <div style="font-size:12px; color:var(--muted); margin-bottom:10px;" id="buscador-count"></div>
-
-            <div id="buscador-lista" style="
-                max-height:400px; overflow-y:auto;
-                background:rgba(0,0,0,0.2); border-radius:12px;
-                border:1px solid var(--glass-border);
-            ">
-                <div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">
-                    Escribí al menos 2 caracteres para buscar
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══ MODAL PESO ══ -->
-    <div id="modal-peso" class="modal-overlay">
-        <div class="modal-window" style="max-width:360px; text-align:center;">
-            <div style="font-size:2.5rem; margin-bottom:8px;">⚖️</div>
-            <h3 style="margin:0 0 4px; font-size:18px;" id="modal-peso-nombre">Producto</h3>
-            <p style="opacity:.45; font-size:13px; margin:0 0 20px;" id="modal-peso-precio">$0/kg</p>
-            <div style="display:flex; gap:10px; margin-bottom:16px;">
-                <button id="btn-gramos" onclick="seleccionarUnidadPeso('g')"
-                    style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--accent);background:rgba(56,189,248,0.12);color:var(--accent);font-weight:700;cursor:pointer;font-size:14px;">
-                    Gramos (g)
-                </button>
-                <button id="btn-kilos" onclick="seleccionarUnidadPeso('kg')"
-                    style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--glass-border);background:var(--glass);color:var(--muted);font-weight:700;cursor:pointer;font-size:14px;">
-                    Kilos (kg)
-                </button>
-            </div>
-            <input type="number" id="input-peso" class="modal-recibido"
-                placeholder="Ej: 500" step="1" min="0" style="margin-bottom:8px;"
-                oninput="calcularPrecioSegunPeso()">
-            <div id="peso-precio-preview"
-                style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:14px;margin-bottom:18px;min-height:48px;">
-                <span style="color:var(--muted);font-size:13px;">Ingresá el peso para ver el precio</span>
-            </div>
-            <button class="cobrar-btn" onclick="confirmarPeso()" style="margin-bottom:10px;">
-                <i class="fas fa-plus"></i> AGREGAR AL CARRITO
-            </button>
-            <button class="btn btn-clear" onclick="cerrarModalPeso()">CANCELAR</button>
-        </div>
-    </div>
-
-    <div id="modal-cobro" class="modal-overlay">
-    <div class="modal-window">
-        <h2 style="text-align:center;font-size:17px;font-weight:500;color:var(--muted);margin-bottom:6px;">Cerrar venta</h2>
-        <input type="hidden" id="modal-imprimir-flag" value="no">
-        <div class="modal-total-display" id="cobro-total-display">$ 0</div>
-        <input type="number" id="pago-recibido" class="modal-input" placeholder="Monto recibido..." oninput="calcularVuelto()">
-        <div class="vuelto-box">
-            <div class="vuelto-label">Vuelto</div>
-            <div class="vuelto-amount" id="cobro-vuelto-display">$ 0</div>
-        </div>
-        <button class="cobrar-btn" onclick="confirmarCobro()" style="margin-bottom:10px;">
-            <i class="fas fa-check"></i> CONFIRMAR COBRO
-        </button>
-        <button class="btn btn-print" onclick="confirmarCobro()" style="margin-bottom:10px;">
-            <i class="fas fa-print"></i> Cobrar e imprimir
-        </button>
-        <button class="btn btn-clear" onclick="cerrarModalCobro()">CANCELAR</button>
-    </div>
-</div>
-
-<!-- ══════════════════════════════════════
-     MODAL NUEVO PRODUCTO
-══════════════════════════════════════ -->
-<div id="modal-producto" class="modal-overlay">
-    <div class="modal-window">
-        <h3 style="margin-bottom:20px;">Nuevo Artículo</h3>
-        <input type="text"   id="nuevo-cod"   class="form-input" placeholder="Código de barras">
-        <input type="text"   id="nuevo-det"   class="form-input" placeholder="Nombre del producto">
-        <input type="number" id="nuevo-pr"    class="form-input" placeholder="Precio ($) — por kg si es a granel">
-        <input type="number" id="nuevo-stock" class="form-input" placeholder="Stock (kg si es a granel)">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:14px; background:var(--glass); border-radius:10px; border:1px solid var(--glass-border);">
-            <input type="checkbox" id="nuevo-por-peso" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);">
-            <div>
-                <div style="font-weight:600; font-size:14px;">Producto por peso / a granel</div>
-                <div style="font-size:12px; opacity:.5; margin-top:2px;">Verduras, frutas, fiambres, etc. El precio es por kg.</div>
-            </div>
-        </div>
-        <button class="btn btn-confirm" onclick="subirProductoAFirebase()">GUARDAR</button>
-        <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalProducto()">VOLVER</button>
-    </div>
-</div>
-
-<!-- ══════════════════════════════════════
-     MODAL EDITAR PRODUCTO
-══════════════════════════════════════ -->
-<div id="modal-editar" class="modal-overlay">
-    <div class="modal-window">
-        <h3 style="margin-bottom:20px;">Editar Artículo</h3>
-        <input type="hidden" id="edit-id">
-        <input type="text"   id="edit-det"   class="form-input" placeholder="Nombre">
-        <input type="number" id="edit-pr"    class="form-input" placeholder="Precio ($)">
-        <input type="number" id="edit-stock" class="form-input" placeholder="Stock">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:14px; background:var(--glass); border-radius:10px; border:1px solid var(--glass-border);">
-            <input type="checkbox" id="edit-por-peso" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);">
-            <div>
-                <div style="font-weight:600; font-size:14px;">Producto por peso / a granel</div>
-                <div style="font-size:12px; opacity:.5; margin-top:2px;">El precio es por kg.</div>
-            </div>
-        </div>
-        <button class="btn btn-confirm" onclick="actualizarProductoEnFirebase()">ACTUALIZAR</button>
-        <button class="btn btn-clear" style="margin-top:10px;" onclick="cerrarModalEditar()">SALIR</button>
-    </div>
-</div>
-
-<!-- ══════════════════════════════════════
-     MODAL PIN ADMIN
-══════════════════════════════════════ -->
-<div id="modal-pin" class="modal-overlay">
-    <div class="modal-window pin-modal-inner">
-        <div style="font-size:2rem;margin-bottom:6px;">🔐</div>
-        <h3 style="font-size:17px;font-weight:600;margin-bottom:4px;" id="pin-modal-titulo">Usuario A</h3>
-        <p style="opacity:.45;font-size:13px;">Ingresá tu PIN de acceso</p>
-        <div class="pin-dots" id="pin-dots">
-            <div class="pin-dot" id="dot-0"></div>
-            <div class="pin-dot" id="dot-1"></div>
-            <div class="pin-dot" id="dot-2"></div>
-            <div class="pin-dot" id="dot-3"></div>
-            <div class="pin-dot" id="dot-4"></div>
-            <div class="pin-dot" id="dot-5"></div>
-        </div>
-        <div class="pin-pad">
-            <div class="pin-key" onclick="pinPresionar('1')">1</div>
-            <div class="pin-key" onclick="pinPresionar('2')">2</div>
-            <div class="pin-key" onclick="pinPresionar('3')">3</div>
-            <div class="pin-key" onclick="pinPresionar('4')">4</div>
-            <div class="pin-key" onclick="pinPresionar('5')">5</div>
-            <div class="pin-key" onclick="pinPresionar('6')">6</div>
-            <div class="pin-key" onclick="pinPresionar('7')">7</div>
-            <div class="pin-key" onclick="pinPresionar('8')">8</div>
-            <div class="pin-key" onclick="pinPresionar('9')">9</div>
-            <div class="pin-key pin-key-del" onclick="pinBorrar()"><i class="fas fa-delete-left"></i></div>
-            <div class="pin-key pin-key-0" onclick="pinPresionar('0')">0</div>
-        </div>
-        <div class="pin-error" id="pin-error"></div>
-        <button class="btn btn-clear" style="margin-top:12px;" onclick="cerrarPinAdmin()">CANCELAR</button>
-    </div>
-</div>
-
-<!-- Firebase -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, limit, orderBy }
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    const firebaseConfig = {
-        apiKey: "AIzaSyB0a2iMWw5O4BxyssWe5Bp0wCXou9I1YMc",
-        authDomain: "software-b7f1a.firebaseapp.com",
-        projectId: "software-b7f1a",
-        storageBucket: "software-b7f1a.firebasestorage.app",
-        messagingSenderId: "457724276762",
-        appId: "1:457724276762:web:bffb9b54ce4d96f2ab61a3"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-    window.db = db;
-    window.fs = { collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, limit, orderBy };
-</script>
-
-<script src="script.js"></script>
-
-<script>
-    // ══ ESTADO DE SESIÓN ══
-    let usuarioActual    = null; // null | 'v1' | 'v2' | 'admin'
-    let pinIngresado     = '';
-    let usuarioPinActivo = null; // qué usuario está ingresando el PIN
-
-    const PINS = { 'sandra': '2026', 'tamara': '3101', 'fabian': '0887' };
-    const NOMBRES = { 'sandra': 'Sandra', 'tamara': 'Tamara', 'fabian': 'Fabian' };
-    const SOLO_ADMIN = ['articulos','historial','estadisticas'];
-    const ADMINS = ['tamara','fabian'];
-
-    // ══ NAVEGACIÓN ══
-    function verSeccion(id) {
-        if (SOLO_ADMIN.includes(id) && !ADMINS.includes(usuarioActual)) {
-            _mostrarSeccion('bloqueado');
-            return;
-        }
-        _mostrarSeccion(id);
-        if (id === 'ventas')       setTimeout(() => document.getElementById('lector-barras').focus(), 300);
-        if (id === 'articulos')    cargarTodosLosProductos();
-        if (id === 'historial')    { document.getElementById('filtro-fecha').value = new Date().toISOString().split('T')[0]; cargarHistorial(); }
-        if (id === 'estadisticas') { document.getElementById('filtro-mes-estadistica').value = new Date().toISOString().substring(0,7); cargarEstadisticas(); }
+let carritoVentas = [];
+let DB_PRODUCTOS = [];
+let totalVentaActual = 0;
+let graficoGeneral = null;
+
+// ─────────────────────────────────────────
+// 1. INICIALIZACIÓN
+// ─────────────────────────────────────────
+async function inicializar() {
+    // Con muchos productos NO cargamos todo al inicio — solo renderizamos
+    // lo que ya tengamos en cache y dejamos que el scanner busque en Firebase
+    console.log("📦 GestOK: Iniciado. Los productos se buscan en Firebase al escanear.");
+    renderizarTablaInventario();
+}
+
+// Carga todos los productos — solo se llama desde la sección Artículos
+async function cargarTodosLosProductos() {
+    const tbody = document.getElementById('tabla-inventario-body');
+    try {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;opacity:.5;">⏳ Cargando inventario...</td></tr>';
+
+        const snap = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
+        DB_PRODUCTOS = [];
+        snap.forEach(doc => DB_PRODUCTOS.push(doc.data()));
+        renderizarTablaInventario();
+        mostrarToast('✅ ' + DB_PRODUCTOS.length + ' productos cargados');
+
+    } catch (error) {
+        console.error("Error al cargar inventario:", error);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--danger);">❌ Error de conexión — Verificá tu red</td></tr>';
+        mostrarToast('❌ Error al cargar inventario');
+    }
+}
+
+// ─────────────────────────────────────────
+// 2. LÓGICA DE VENTAS — SCANNER
+// ─────────────────────────────────────────
+
+// Busca primero en el cache local (DB_PRODUCTOS).
+// Si no lo encuentra, va directamente a Firebase como fallback.
+// Esto resuelve: productos cargados desde otra PC, y race conditions al iniciar.
+function manejarLector(e) {
+    if (e.key !== 'Enter') return;
+
+    const input = e.target.value.trim();
+    if (!input) return;
+
+    let codigoABuscar = input;
+    let cantidad = 1;
+
+    // Soporte balanza (prefijo 20, código 5 dígitos, peso 5 dígitos / 1000)
+    if (input.startsWith('20') && input.length >= 12) {
+        codigoABuscar = input.substring(2, 7);
+        cantidad = parseInt(input.substring(7, 12)) / 1000;
     }
 
-    function _mostrarSeccion(id) {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById('sec-' + id).classList.add('active');
+    e.target.value = '';
+
+    // 1° — buscar en cache local (rápido, sin red)
+    const prodLocal = DB_PRODUCTOS.find(p => String(p.cod) === String(codigoABuscar));
+
+    if (prodLocal) {
+        agregarAlCarrito(prodLocal, cantidad);
+        return;
     }
 
-    // ══ USUARIOS OPERADORES ══
-    // Abre el modal PIN para cualquier usuario (v1, v2 o admin)
-    function abrirPinUsuario(usuario) {
-        usuarioPinActivo = usuario;
-        pinIngresado = '';
-        _actualizarDots();
-        document.getElementById('pin-error').textContent = '';
-        const titulo = document.getElementById('pin-modal-titulo');
-        if (titulo) titulo.textContent = NOMBRES[usuario] || usuario;
-        document.getElementById('modal-pin').style.display = 'flex';
-    }
-    function abrirPinAdmin() { abrirPinUsuario('admin'); }
-    function cerrarPinAdmin() {
-        pinIngresado = '';
-        _actualizarDots();
-        document.getElementById('modal-pin').style.display = 'none';
-    }
-    function pinPresionar(d) {
-        const maxLen = PINS[usuarioPinActivo] ? PINS[usuarioPinActivo].length : 6;
-        if (pinIngresado.length >= maxLen) return;
-        pinIngresado += d;
-        _actualizarDots();
-        const pinLen = PINS[usuarioPinActivo] ? PINS[usuarioPinActivo].length : 4;
-        if (pinIngresado.length === pinLen) _verificarPin();
-    }
-    function pinBorrar() {
-        pinIngresado = pinIngresado.slice(0,-1);
-        _actualizarDots();
-        document.getElementById('pin-error').textContent = '';
-    }
-    function _actualizarDots() {
-        const totalDots = PINS[usuarioPinActivo] ? PINS[usuarioPinActivo].length : 4;
-        for (let i = 0; i < 6; i++) {
-            const dot = document.getElementById('dot-' + i);
-            if (!dot) continue;
-            dot.style.display = i < totalDots ? '' : 'none';
-            dot.classList.toggle('filled', i < pinIngresado.length);
-        }
-    }
-    function _verificarPin() {
-        const pinCorrecto = PINS[usuarioPinActivo];
-        if (pinIngresado === pinCorrecto) {
-            usuarioActual = usuarioPinActivo;
-            cerrarPinAdmin();
-            _actualizarDashboard();
-            _mostrarSeccion('dashboard');
+    // 2° — no estaba en cache: buscar en Firebase y actualizar cache
+    mostrarToast('🔍 Buscando en base de datos...');
+    buscarEnFirebase(codigoABuscar, cantidad);
+}
+
+async function buscarEnFirebase(codigoABuscar, cantidad) {
+    try {
+        const q    = window.fs.query(
+            window.fs.collection(window.db, "articulos"),
+            window.fs.where("cod", "==", String(codigoABuscar))
+        );
+        const snap = await window.fs.getDocs(q);
+
+        if (!snap.empty) {
+            const prod = snap.docs[0].data();
+
+            // Actualizar cache local para no volver a consultar Firebase por este mismo código
+            const yaEnCache = DB_PRODUCTOS.find(p => String(p.cod) === String(prod.cod));
+            if (!yaEnCache) DB_PRODUCTOS.push(prod);
+
+            agregarAlCarrito(prod, cantidad);
         } else {
-            document.getElementById('pin-error').textContent = 'PIN incorrecto. Intentá de nuevo.';
-            const dots = document.getElementById('pin-dots');
-            dots.classList.remove('pin-shake');
-            void dots.offsetWidth;
-            dots.classList.add('pin-shake');
-            setTimeout(() => { pinIngresado = ''; _actualizarDots(); }, 600);
+            // Tampoco existe en Firebase
+            flashScanner('err');
+            mostrarToast('⚠️ Producto no encontrado: ' + codigoABuscar);
         }
+    } catch (err) {
+        console.error('Error buscando en Firebase:', err);
+        mostrarToast('❌ Error de conexión. Verificá tu red.');
+    }
+}
+
+function agregarAlCarrito(prod, cantidad) {
+    // Si es producto por peso, abrir modal de ingreso de peso
+    if (prod.por_peso) {
+        flashScanner('ok');
+        abrirModalPeso(prod);
+        return;
     }
 
-    // ══ DASHBOARD: chip de usuario y bloqueo de cards ══
-    function _actualizarDashboard() {
-        const esAdmin = ADMINS.includes(usuarioActual);
-        const nombre  = NOMBRES[usuarioActual] || usuarioActual;
+    const existente = carritoVentas.find(i => String(i.cod) === String(prod.cod));
+    if (existente) {
+        existente.cant += cantidad;
+    } else {
+        carritoVentas.push({
+            id_temp: Date.now() + Math.random(),
+            cod:  prod.cod,
+            det:  prod.det,
+            pr:   parseFloat(prod.pr),
+            cant: cantidad
+        });
+    }
+    flashScanner('ok');
+    actualizarTablaVentas();
+}
 
-        document.getElementById('user-chip-wrap').innerHTML =
-            `<div class="user-chip${esAdmin?' admin':''}">
-                <div class="chip-dot"></div>
-                ${nombre}
-                <button class="logout-btn" onclick="cerrarSesion()" title="Cerrar sesión">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
-            </div>`;
+// ── LÓGICA DE PRODUCTOS POR PESO ────────────────────────────────
+let _prodPeso    = null; // producto esperando peso
+let _unidadPeso  = 'g';  // 'g' o 'kg'
 
-        ['articulos','historial','estadisticas'].forEach(id => {
-            const card = document.getElementById('card-'+id);
-            if (!card) return;
-            if (esAdmin) {
-                card.classList.remove('card-locked');
-                const badge = card.querySelector('.lock-badge');
-                if (badge) badge.style.display = 'none';
-            } else {
-                card.classList.add('card-locked');
-                const badge = card.querySelector('.lock-badge');
-                if (badge) badge.style.display = '';
-            }
+function abrirModalPeso(prod) {
+    _prodPeso   = prod;
+    _unidadPeso = 'g';
+    document.getElementById('modal-peso-nombre').textContent = prod.det;
+    document.getElementById('modal-peso-precio').textContent = '$ ' + parseFloat(prod.pr).toLocaleString('es-AR') + ' /kg';
+    document.getElementById('input-peso').value = '';
+    document.getElementById('peso-precio-preview').innerHTML =
+        '<span style="color:var(--muted);font-size:13px;">Ingresá el peso para ver el precio</span>';
+    seleccionarUnidadPeso('g');
+    document.getElementById('modal-peso').style.display = 'flex';
+    setTimeout(() => document.getElementById('input-peso').focus(), 150);
+}
+
+function cerrarModalPeso() {
+    document.getElementById('modal-peso').style.display = 'none';
+    _prodPeso = null;
+}
+
+function seleccionarUnidadPeso(unidad) {
+    _unidadPeso = unidad;
+    const btnG  = document.getElementById('btn-gramos');
+    const btnKg = document.getElementById('btn-kilos');
+    if (unidad === 'g') {
+        btnG.style.border  = '2px solid var(--accent)';
+        btnG.style.background = 'rgba(56,189,248,0.12)';
+        btnG.style.color   = 'var(--accent)';
+        btnKg.style.border = '1px solid var(--glass-border)';
+        btnKg.style.background = 'var(--glass)';
+        btnKg.style.color  = 'var(--muted)';
+        document.getElementById('input-peso').placeholder = 'Ej: 500 (gramos)';
+    } else {
+        btnKg.style.border  = '2px solid var(--accent)';
+        btnKg.style.background = 'rgba(56,189,248,0.12)';
+        btnKg.style.color   = 'var(--accent)';
+        btnG.style.border  = '1px solid var(--glass-border)';
+        btnG.style.background = 'var(--glass)';
+        btnG.style.color   = 'var(--muted)';
+        document.getElementById('input-peso').placeholder = 'Ej: 1.5 (kilos)';
+    }
+    calcularPrecioSegunPeso();
+}
+
+function calcularPrecioSegunPeso() {
+    if (!_prodPeso) return;
+    const valor = parseFloat(document.getElementById('input-peso').value) || 0;
+    const kg    = _unidadPeso === 'g' ? valor / 1000 : valor;
+    const precio = Math.ceil(_prodPeso.pr * kg);
+    const preview = document.getElementById('peso-precio-preview');
+    if (valor <= 0) {
+        preview.innerHTML = '<span style="color:var(--muted);font-size:13px;">Ingresá el peso para ver el precio</span>';
+        return;
+    }
+    const pesoDisplay = _unidadPeso === 'g' ? valor + 'g' : valor + 'kg';
+    preview.innerHTML = `
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${pesoDisplay} × $${parseFloat(_prodPeso.pr).toLocaleString('es-AR')}/kg</div>
+        <div style="font-size:22px;font-weight:900;color:var(--accent);">$ ${precio.toLocaleString('es-AR')}</div>
+    `;
+}
+
+function confirmarPeso() {
+    if (!_prodPeso) return;
+    const valor = parseFloat(document.getElementById('input-peso').value) || 0;
+    if (valor <= 0) {
+        mostrarToast('⚠️ Ingresá un peso válido');
+        return;
+    }
+    const kg   = _unidadPeso === 'g' ? valor / 1000 : valor;
+    const desc = _unidadPeso === 'g' ? `${valor}g` : `${valor}kg`;
+
+    const existente = carritoVentas.find(i => String(i.cod) === String(_prodPeso.cod));
+    if (existente) {
+        existente.cant += kg;
+    } else {
+        carritoVentas.push({
+            id_temp: Date.now() + Math.random(),
+            cod:  _prodPeso.cod,
+            det:  _prodPeso.det + ` (${desc})`,
+            pr:   parseFloat(_prodPeso.pr),
+            cant: kg
         });
     }
 
-    function cerrarSesion() {
-        usuarioActual = null;
-        _mostrarSeccion('login');
+    cerrarModalPeso();
+    actualizarTablaVentas();
+    mostrarToast(`✅ ${_prodPeso ? _prodPeso.det : ''} — ${desc} agregado`);
+    setTimeout(() => document.getElementById('lector-barras')?.focus(), 200);
+}
+
+// Flash visual en el input del scanner
+function flashScanner(tipo) {
+    const inp = document.getElementById('lector-barras');
+    if (!inp) return;
+    inp.classList.add(tipo === 'ok' ? 'scan-ok' : 'scan-err');
+    setTimeout(() => { inp.classList.remove('scan-ok', 'scan-err'); }, 420);
+}
+
+// Toast liviano (no interrumpe el flujo como alert)
+function mostrarToast(msg) {
+    let t = document.getElementById('gestok-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'gestok-toast';
+        t.style.cssText = `
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: #f1f5f9; border: 1px solid rgba(239,68,68,0.4);
+            padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600;
+            z-index: 9999; transition: opacity .3s; pointer-events: none;
+        `;
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2200);
+}
+
+// ─────────────────────────────────────────
+// 3. RENDERIZADO DE LA TABLA DE VENTAS
+// ─────────────────────────────────────────
+function actualizarTablaVentas() {
+    const body  = document.getElementById('lista-ventas-items');
+    const count = document.getElementById('items-count-label');
+    const meta  = document.getElementById('total-meta-label');
+    const btn   = document.getElementById('cobrar-btn');
+    if (!body) return;
+
+    // Carrito vacío
+    if (carritoVentas.length === 0) {
+        body.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p>El carrito está vacío</p>
+                        <p style="font-size:12px; opacity:.6;">Escaneá un producto para comenzar</p>
+                    </div>
+                </td>
+            </tr>`;
+        totalVentaActual = 0;
+        document.getElementById('total-final').innerText = '$ 0';
+        if (meta)  meta.innerText = '—';
+        if (count) count.innerText = '0 artículos';
+        if (btn)   btn.disabled = true;
+        return;
     }
 
-    // ══ TECLADO FÍSICO PARA PIN ══
-    document.addEventListener('keydown', function(e) {
-        if (document.getElementById('modal-pin').style.display !== 'flex') return;
-        if (e.key >= '0' && e.key <= '9') pinPresionar(e.key);
-        if (e.key === 'Backspace') pinBorrar();
+    let totalAcumulado = 0;
+    let totalItems = 0;
+    body.innerHTML = '';
+
+    carritoVentas.forEach(item => {
+        const subtotal = Math.ceil(item.pr * item.cant);
+        totalAcumulado += subtotal;
+        totalItems += item.cant;
+
+        const cantDisplay = Number.isInteger(item.cant) ? item.cant : item.cant.toFixed(3);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <div class="item-name">${item.det}</div>
+                <div class="item-cod">${item.cod}</div>
+            </td>
+            <td class="item-price">$ ${item.pr.toLocaleString('es-AR')}</td>
+            <td style="text-align:center;">
+                <span class="qty-badge">${cantDisplay}</span>
+            </td>
+            <td class="item-subtotal">$ ${subtotal.toLocaleString('es-AR')}</td>
+            <td>
+                <div class="del-item" onclick="eliminarItemCarrito(${item.id_temp})">
+                    <i class="fas fa-times"></i>
+                </div>
+            </td>
+        `;
+        body.appendChild(tr);
     });
 
-    // ══ VENTAS ══
-    function onTipoDocChange() {
+    totalVentaActual = totalAcumulado;
+
+    document.getElementById('total-final').innerText = '$ ' + totalAcumulado.toLocaleString('es-AR');
+
+    const cantLabel = totalItems === 1 ? '1 artículo' : `${Number.isInteger(totalItems) ? totalItems : totalItems.toFixed(3)} artículos`;
+    if (meta)  meta.innerText = cantLabel + ' · ' + (document.getElementById('tipo-doc')?.value || '');
+    if (count) count.innerText = cantLabel;
+    if (btn)   btn.disabled = false;
+}
+
+function eliminarItemCarrito(idTemp) {
+    carritoVentas = carritoVentas.filter(i => i.id_temp !== idTemp);
+    actualizarTablaVentas();
+}
+
+function limpiarCarritoCompleto() {
+    if (carritoVentas.length === 0) return;
+    if (confirm('¿Desea vaciar el carrito?')) {
+        carritoVentas = [];
         actualizarTablaVentas();
-        const esPresupuesto = document.getElementById('tipo-doc').value === 'Presupuesto';
-        const banner = document.getElementById('presupuesto-banner');
-        const btnCobrar = document.getElementById('cobrar-btn');
-        if (banner) {
-            banner.classList.toggle('visible', esPresupuesto);
-        }
-        if (btnCobrar) {
-            if (esPresupuesto) {
-                btnCobrar.innerHTML = '<i class="fas fa-file-invoice"></i> EMITIR PRESUPUESTO';
-                btnCobrar.classList.add('modo-presupuesto');
-            } else {
-                btnCobrar.innerHTML = '<i class="fas fa-check-circle"></i> COBRAR';
-                btnCobrar.classList.remove('modo-presupuesto');
+    }
+}
+
+// ─────────────────────────────────────────
+// 4. COBRO Y TICKETS
+// ─────────────────────────────────────────
+// La apertura del modal se maneja desde index.html para poder capturar
+// el flag de impresión. Esta función sigue siendo compatible.
+function calcularVuelto() {
+    const recibido = parseFloat(document.getElementById('pago-recibido').value) || 0;
+    const vuelto   = recibido - totalVentaActual;
+    document.getElementById('cobro-vuelto-display').innerText =
+        '$ ' + (vuelto > 0 ? Math.floor(vuelto).toLocaleString('es-AR') : 0);
+}
+
+function cerrarModalCobro() {
+    document.getElementById('modal-cobro').style.display = 'none';
+}
+
+async function finalizarYRegistrarVenta(debeImprimir) {
+    if (carritoVentas.length === 0) return;
+
+    const metodoPago      = document.getElementById('tipo-pago').value;
+    const tipoComprobante = document.getElementById('tipo-doc').value;
+    const esPresupuesto   = tipoComprobante === 'Presupuesto';
+
+    const vendedorActual = (typeof usuarioActual !== 'undefined' && usuarioActual)
+        ? (usuarioActual.charAt(0).toUpperCase() + usuarioActual.slice(1))
+        : 'Vendedor';
+
+    const ticket = {
+        fecha:            new Date().toLocaleString('es-AR'),
+        tipo_comprobante: tipoComprobante,
+        metodo_pago:      metodoPago,
+        items:            JSON.parse(JSON.stringify(carritoVentas)),
+        total:            totalVentaActual,
+        vendedor:         vendedorActual
+    };
+
+    // ── MODO PRESUPUESTO: solo imprimir, sin guardar ni descontar stock ──
+    if (esPresupuesto) {
+        generarTicketImpresion(ticket);
+        setTimeout(() => {
+            document.activeElement && document.activeElement.blur();
+            document.querySelectorAll('input').forEach(i => i.blur());
+            window.print();
+        }, 400);
+        mostrarToast('📄 Presupuesto generado — no se registró como venta');
+        carritoVentas = [];
+        actualizarTablaVentas();
+        cerrarModalCobro();
+        return;
+    }
+
+    // ── VENTA REAL ──
+    try {
+        await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
+
+        for (const item of carritoVentas) {
+            const q = window.fs.query(
+                window.fs.collection(window.db, "articulos"),
+                window.fs.where("cod", "==", String(item.cod))
+            );
+            const snap = await window.fs.getDocs(q);
+            if (!snap.empty) {
+                const docRef   = window.fs.doc(window.db, "articulos", snap.docs[0].id);
+                const stockAct = snap.docs[0].data().stock || 0;
+                await window.fs.updateDoc(docRef, { stock: stockAct - item.cant });
             }
         }
-    }
-
-    function seleccionarMetodo(el, valor) {
-        document.querySelectorAll('.meth-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        document.getElementById('tipo-pago').value = valor;
-    }
-    function abrirModalCobro() {
-        if (carritoVentas.length === 0) return;
-        document.getElementById('modal-imprimir-flag').value = 'no';
-        document.getElementById('cobro-total-display').innerText = '$ ' + totalVentaActual.toLocaleString('es-AR');
-        document.getElementById('pago-recibido').value = '';
-        document.getElementById('cobro-vuelto-display').innerText = '$ 0';
-        document.getElementById('modal-cobro').style.display = 'flex';
-        setTimeout(() => document.getElementById('pago-recibido').focus(), 150);
-    }
-    function abrirModalCobroImprimir() {
-        if (carritoVentas.length === 0) return;
-        document.getElementById('modal-imprimir-flag').value = 'si';
-        document.getElementById('cobro-total-display').innerText = '$ ' + totalVentaActual.toLocaleString('es-AR');
-        document.getElementById('pago-recibido').value = '';
-        document.getElementById('cobro-vuelto-display').innerText = '$ 0';
-        document.getElementById('modal-cobro').style.display = 'flex';
-        setTimeout(() => document.getElementById('pago-recibido').focus(), 150);
-    }
-    function confirmarCobro() {
-        const imprimir = document.getElementById('modal-imprimir-flag').value === 'si';
-        finalizarYRegistrarVenta(imprimir);
-    }
-
-    // ══════════════════════════════════════════
-    //  PANTALLA DIVIDIDA
-    // ══════════════════════════════════════════
-    let splitCarritos = { 1: [], 2: [] };
-    let splitTotales  = { 1: 0,  2: 0  };
-
-    function entrarPantallaDividida() {
-        // Mostrar modal de selección de usuario para el segundo panel
-        abrirModalSplitUser();
-    }
-
-    // ── MODAL SELECCIÓN USUARIO SPLIT ──────────────────────────
-    let _splitUsuario2     = null;
-    let _splitPinIngresado = '';
-
-    function abrirModalSplitUser() {
-        _splitUsuario2     = null;
-        _splitPinIngresado = '';
-
-        // Generar cards de usuarios disponibles (todos excepto el actual)
-        const cards = document.getElementById('split-user-cards');
-        cards.innerHTML = '';
-
-        const colores = {
-            'sandra': { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8', letra: 'S' },
-            'tamara': { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b', letra: 'T' },
-            'fabian': { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7', letra: 'F' },
-        };
-
-        Object.keys(PINS).forEach(user => {
-            if (user === usuarioActual) return; // no mostrarse a sí mismo
-            const c      = colores[user] || { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', color: '#94a3b8', letra: user[0].toUpperCase() };
-            const nombre = NOMBRES[user] || user;
-            const card   = document.createElement('div');
-            card.style.cssText = `background:${c.bg};border:1.5px solid ${c.border};border-radius:14px;padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:.2s;`;
-            card.innerHTML = `
-                <div style="width:42px;height:42px;border-radius:50%;background:${c.bg};border:2px solid ${c.border};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:${c.color};flex-shrink:0;">${c.letra}</div>
-                <div style="text-align:left;">
-                    <div style="font-weight:700;font-size:15px;">${nombre}</div>
-                    <div style="font-size:12px;opacity:.5;">Ingresará con su PIN</div>
-                </div>
-                <div style="margin-left:auto;color:${c.color};font-size:18px;">→</div>
-            `;
-            card.onmouseenter = () => card.style.transform = 'translateX(4px)';
-            card.onmouseleave = () => card.style.transform = '';
-            card.onclick = () => seleccionarUsuarioSplit(user);
-            cards.appendChild(card);
-        });
-
-        document.getElementById('split-user-cards').style.display    = 'flex';
-        document.getElementById('split-pin-section').style.display   = 'none';
-        document.getElementById('split-cancelar-btn').style.display  = 'block';
-        document.getElementById('modal-split-user').style.display    = 'flex';
-    }
-
-    function seleccionarUsuarioSplit(user) {
-        _splitUsuario2     = user;
-        _splitPinIngresado = '';
-        actualizarSplitDots();
-
-        // Mostrar sección PIN
-        document.getElementById('split-user-cards').style.display   = 'none';
-        document.getElementById('split-pin-section').style.display  = 'block';
-        document.getElementById('split-cancelar-btn').style.display = 'none';
-        document.getElementById('split-pin-nombre').textContent     = NOMBRES[user] || user;
-        document.getElementById('split-pin-error').textContent      = '';
-
-        // Ajustar dots según longitud del PIN
-        const pinLen = PINS[user] ? PINS[user].length : 4;
-        for (let i = 0; i < 6; i++) {
-            const dot = document.getElementById('split-dot-' + i);
-            if (dot) dot.style.display = i < pinLen ? '' : 'none';
-        }
-    }
-
-    function splitVolverSeleccion() {
-        _splitUsuario2     = null;
-        _splitPinIngresado = '';
-        document.getElementById('split-user-cards').style.display   = 'flex';
-        document.getElementById('split-pin-section').style.display  = 'none';
-        document.getElementById('split-cancelar-btn').style.display = 'block';
-        document.getElementById('split-pin-error').textContent      = '';
-    }
-
-    function splitPinPresionar(digito) {
-        const maxLen = PINS[_splitUsuario2] ? PINS[_splitUsuario2].length : 4;
-        if (_splitPinIngresado.length >= maxLen) return;
-        _splitPinIngresado += digito;
-        actualizarSplitDots();
-        if (_splitPinIngresado.length === maxLen) verificarSplitPin();
-    }
-
-    function splitPinBorrar() {
-        _splitPinIngresado = _splitPinIngresado.slice(0, -1);
-        actualizarSplitDots();
-        document.getElementById('split-pin-error').textContent = '';
-    }
-
-    function actualizarSplitDots() {
-        for (let i = 0; i < 6; i++) {
-            const dot = document.getElementById('split-dot-' + i);
-            if (dot) dot.classList.toggle('filled', i < _splitPinIngresado.length);
-        }
-    }
-
-    function verificarSplitPin() {
-        const pinCorrecto = PINS[_splitUsuario2];
-        if (_splitPinIngresado === pinCorrecto) {
-            cerrarModalSplitUser();
-            _iniciarPantallaDividida(_splitUsuario2);
-        } else {
-            document.getElementById('split-pin-error').textContent = 'PIN incorrecto. Intentá de nuevo.';
-            const dots = document.getElementById('split-pin-dots');
-            dots.classList.remove('pin-shake');
-            void dots.offsetWidth;
-            dots.classList.add('pin-shake');
-            setTimeout(() => { _splitPinIngresado = ''; actualizarSplitDots(); }, 600);
-        }
-    }
-
-    function cerrarModalSplitUser() {
-        document.getElementById('modal-split-user').style.display = 'none';
-        _splitUsuario2     = null;
-        _splitPinIngresado = '';
-    }
-
-    function _iniciarPantallaDividida(usuario2) {
-        // Pasar carrito actual al panel 1
-        splitCarritos[1] = JSON.parse(JSON.stringify(carritoVentas));
-        splitCarritos[2] = [];
-        splitTotales[1]  = totalVentaActual;
-        splitTotales[2]  = 0;
-
-        // Labels con los nombres reales
-        const nombre1 = NOMBRES[usuarioActual] || usuarioActual;
-        const nombre2 = NOMBRES[usuario2]      || usuario2;
-        document.getElementById('split-label-v1').textContent = nombre1;
-        document.getElementById('split-label-v2').textContent = nombre2;
-
-        splitRenderizar(1);
-        splitRenderizar(2);
-
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById('sec-split').classList.add('active');
-        setTimeout(() => document.getElementById('split-input-1').focus(), 300);
-    }
-
-    
-    function salirPantallaDividida() {
-        // Devolver carrito del panel 1 a la terminal principal
-        carritoVentas    = JSON.parse(JSON.stringify(splitCarritos[1]));
-        totalVentaActual = splitTotales[1];
-        actualizarTablaVentas();
-        verSeccion('ventas');
-    }
-
-    async function splitManejarLector(e, panel) {
-        if (e.key !== 'Enter') return;
-        const input = e.target.value.trim();
-        if (!input) return;
-
-        let cod = input, cant = 1;
-        if (input.startsWith('20') && input.length >= 12) {
-            cod  = input.substring(2, 7);
-            cant = parseInt(input.substring(7, 12)) / 1000;
-        }
-
-        e.target.value = '';
-
-        const prodLocal = DB_PRODUCTOS.find(p => String(p.cod) === String(cod));
-        if (prodLocal) {
-            splitAgregarItem(panel, prodLocal, cant);
-            splitFlash(panel, 'ok');
-        } else {
-            // Buscar en Firebase
-            try {
-                const q    = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod","==",String(cod)));
-                const snap = await window.fs.getDocs(q);
-                if (!snap.empty) {
-                    const prod = snap.docs[0].data();
-                    if (!DB_PRODUCTOS.find(p => String(p.cod) === String(prod.cod))) DB_PRODUCTOS.push(prod);
-                    splitAgregarItem(panel, prod, cant);
-                    splitFlash(panel, 'ok');
-                } else {
-                    splitFlash(panel, 'err');
-                    mostrarToast('Producto no encontrado: ' + cod);
-                }
-            } catch(err) { mostrarToast('Error de conexion'); }
-        }
-    }
-
-    function splitAgregarItem(panel, prod, cant) {
-        const carrito  = splitCarritos[panel];
-        const existente = carrito.find(i => String(i.cod) === String(prod.cod));
-        if (existente) {
-            existente.cant += cant;
-        } else {
-            carrito.push({ id_temp: Date.now()+Math.random(), cod: prod.cod, det: prod.det, pr: parseFloat(prod.pr), cant });
-        }
-        splitRenderizar(panel);
-    }
-
-    function splitRenderizar(panel) {
-        const tbody = document.getElementById('split-items-' + panel);
-        const carrito = splitCarritos[panel];
-        let total = 0, totalItems = 0;
-
-        if (carrito.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5"><div class="split-empty"><i class="fas fa-shopping-cart"></i><p>Carrito vacio</p></div></td></tr>';
-            document.getElementById('split-total-' + panel).textContent = '$ 0';
-            document.getElementById('split-count-' + panel).textContent = '0 articulos';
-            document.getElementById('split-cobrar-' + panel).disabled = true;
-            splitTotales[panel] = 0;
-            return;
-        }
-
-        tbody.innerHTML = '';
-        carrito.forEach(item => {
-            const sub = Math.ceil(item.pr * item.cant);
-            total += sub;
-            totalItems += item.cant;
-            const tr = document.createElement('tr');
-            const cantDisplay = Number.isInteger(item.cant) ? item.cant : item.cant.toFixed(3);
-            tr.innerHTML = `
-                <td style="font-size:13px;font-weight:500;">${item.det}<br><span style="font-size:10px;color:var(--muted);font-family:monospace;">${item.cod}</span></td>
-                <td style="font-size:12px;color:var(--muted);">$${item.pr.toLocaleString('es-AR')}</td>
-                <td style="text-align:center;"><span class="qty-badge">${cantDisplay}</span></td>
-                <td style="font-size:13px;font-weight:600;">$${sub.toLocaleString('es-AR')}</td>
-                <td><div class="del-item" onclick="splitEliminar(${panel},${item.id_temp})"><i class="fas fa-times"></i></div></td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        splitTotales[panel] = total;
-        document.getElementById('split-total-' + panel).textContent = '$ ' + total.toLocaleString('es-AR');
-        const label = Number.isInteger(totalItems) ? totalItems : totalItems.toFixed(3);
-        document.getElementById('split-count-' + panel).textContent = label + ' articulo' + (totalItems !== 1 ? 's' : '');
-        document.getElementById('split-cobrar-' + panel).disabled = false;
-    }
-
-    function splitEliminar(panel, idTemp) {
-        splitCarritos[panel] = splitCarritos[panel].filter(i => i.id_temp !== idTemp);
-        splitRenderizar(panel);
-    }
-
-    function splitVaciar(panel) {
-        if (splitCarritos[panel].length === 0) return;
-        if (confirm('Vaciar carrito?')) { splitCarritos[panel] = []; splitRenderizar(panel); }
-    }
-
-    function splitSelMetodo(panel, el, valor) {
-        const container = document.getElementById('split-methods-' + panel);
-        container.querySelectorAll('.split-meth').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        document.getElementById('split-metodo-' + panel).value = valor;
-    }
-
-    function splitFlash(panel, tipo) {
-        const inp = document.getElementById('split-input-' + panel);
-        inp.classList.add(tipo === 'ok' ? 'scan-ok' : 'scan-err');
-        setTimeout(() => inp.classList.remove('scan-ok','scan-err'), 420);
-    }
-
-    function splitAbrirCobro(panel) {
-        if (splitCarritos[panel].length === 0) return;
-        document.getElementById('split-cobro-panel').value = panel;
-        document.getElementById('split-cobro-total').textContent = '$ ' + splitTotales[panel].toLocaleString('es-AR');
-        document.getElementById('split-recibido').value = '';
-        document.getElementById('split-vuelto').textContent = '$ 0';
-        document.getElementById('modal-split-cobro').style.display = 'flex';
-        setTimeout(() => document.getElementById('split-recibido').focus(), 150);
-    }
-
-    function splitCerrarCobro() {
-        document.getElementById('modal-split-cobro').style.display = 'none';
-    }
-
-    function splitCalcVuelto() {
-        const panel    = parseInt(document.getElementById('split-cobro-panel').value);
-        const recibido = parseFloat(document.getElementById('split-recibido').value) || 0;
-        const vuelto   = recibido - splitTotales[panel];
-        document.getElementById('split-vuelto').textContent = '$ ' + (vuelto > 0 ? Math.floor(vuelto).toLocaleString('es-AR') : 0);
-    }
-
-    async function splitFinalizar(imprimir) {
-        const panel   = parseInt(document.getElementById('split-cobro-panel').value);
-        const carrito = splitCarritos[panel];
-        if (carrito.length === 0) return;
-
-        const usuarioLabel = panel === 1
-            ? document.getElementById('split-label-v1').textContent
-            : document.getElementById('split-label-v2').textContent;
-
-        const ticket = {
-            fecha: new Date().toLocaleString('es-AR'),
-            tipo_comprobante: 'Ticket No Fiscal',
-            metodo_pago: document.getElementById('split-metodo-' + panel).value,
-            items: JSON.parse(JSON.stringify(carrito)),
-            total: splitTotales[panel],
-            vendedor: usuarioLabel
-        };
 
         try {
-            await window.fs.addDoc(window.fs.collection(window.db, "ventas"), ticket);
+            // Mostrar indicador de espera en el modal
+            const btnConfirmar = document.querySelector('#modal-cobro .cobrar-btn');
+            if (btnConfirmar) {
+                btnConfirmar.disabled = true;
+                btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando factura...';
+            }
+            mostrarToast('📄 Generando Factura C en ARCA...');
+            const datosFactura    = await generarFacturaARCA(ticket);
+            ticket.cae            = datosFactura.cae;
+            ticket.vencimientoCAE = datosFactura.vencimientoCAE;
+            ticket.nroComprobante = datosFactura.nroComprobante;
+            ticket.cae_pendiente  = false;
+            // Actualizar el documento ya guardado con el CAE
+            const qVenta = window.fs.query(
+                window.fs.collection(window.db, "ventas"),
+                window.fs.where("fecha", "==", ticket.fecha)
+            );
+            const snapVenta = await window.fs.getDocs(qVenta);
+            if (!snapVenta.empty) {
+                await window.fs.updateDoc(
+                    window.fs.doc(window.db, "ventas", snapVenta.docs[0].id),
+                    { cae: ticket.cae, vencimientoCAE: ticket.vencimientoCAE,
+                      nroComprobante: ticket.nroComprobante, cae_pendiente: false }
+                );
+            }
+            // Restaurar botón
+            const btnC = document.querySelector('#modal-cobro .cobrar-btn');
+            if (btnC) { btnC.disabled = false; btnC.innerHTML = '<i class="fas fa-check"></i> CONFIRMAR COBRO'; }
+            mostrarToast(`✅ Factura C N° ${datosFactura.nroComprobante} — CAE: ${datosFactura.cae}`);
+        } catch (errARCA) {
+            // Marcar venta como pendiente de facturar
+            // Restaurar botón
+            const btnErr = document.querySelector('#modal-cobro .cobrar-btn');
+            if (btnErr) { btnErr.disabled = false; btnErr.innerHTML = '<i class="fas fa-check"></i> CONFIRMAR COBRO'; }
+            console.warn('ARCA falló, marcando como pendiente:', errARCA.message);
+            const qVenta = window.fs.query(
+                window.fs.collection(window.db, "ventas"),
+                window.fs.where("fecha", "==", ticket.fecha)
+            );
+            const snapVenta = await window.fs.getDocs(qVenta);
+            if (!snapVenta.empty) {
+                await window.fs.updateDoc(
+                    window.fs.doc(window.db, "ventas", snapVenta.docs[0].id),
+                    { cae_pendiente: true, error_arca: errARCA.message }
+                );
+            }
+            mostrarToast('⚠️ Venta guardada — se facturará automáticamente cuando ARCA esté disponible');
+        }
 
-            for (const item of carrito) {
-                const q    = window.fs.query(window.fs.collection(window.db,"articulos"), window.fs.where("cod","==",String(item.cod)));
-                const snap = await window.fs.getDocs(q);
-                if (!snap.empty) {
-                    const docRef = window.fs.doc(window.db,"articulos",snap.docs[0].id);
-                    await window.fs.updateDoc(docRef, { stock: (snap.docs[0].data().stock||0) - item.cant });
+        // Imprimir SIEMPRE después de ARCA — ya sea con o sin CAE
+        if (debeImprimir) {
+            // Cerrar modal antes de imprimir para evitar que aparezca en el ticket
+            cerrarModalCobro();
+            generarTicketImpresion(ticket);
+            // Dar tiempo para que el navegador renderice el ticket
+            await new Promise(r => setTimeout(r, 800));
+            document.activeElement && document.activeElement.blur();
+            document.querySelectorAll('input').forEach(i => i.blur());
+            window.print();
+        }
+
+        mostrarToast('✅ Venta registrada — $ ' + totalVentaActual.toLocaleString('es-AR'));
+        carritoVentas = [];
+        actualizarTablaVentas();
+        cerrarModalCobro();
+        // No recargamos todos los productos — el stock ya se actualizó en Firebase
+
+    } catch (e) {
+        console.error(e);
+        mostrarToast('❌ Error al procesar la operación.');
+    }
+}
+
+function generarTicketImpresion(t) {
+    const container = document.getElementById('ticket-print');
+
+    // Agrupar items por codigo para evitar duplicados
+    const agrupados = {};
+    t.items.forEach(i => {
+        const key = String(i.cod);
+        if (agrupados[key]) {
+            agrupados[key].cant += i.cant;
+        } else {
+            agrupados[key] = { ...i };
+        }
+    });
+
+    let filas = '';
+    Object.values(agrupados).forEach(i => {
+        const cant     = Number.isInteger(i.cant) ? i.cant : i.cant.toFixed(3);
+        const subtotal = '$' + Math.ceil(i.pr * i.cant).toLocaleString('es-AR');
+        const nombre   = i.det.length > 30 ? i.det.substring(0, 30) : i.det;
+        filas += `
+            <tr>
+                <td colspan="2" style="padding-top:5px; font-weight:bold;">${nombre}</td>
+            </tr>
+            <tr>
+                <td style="font-size:8.5pt; color:#333;">${cant} x $${parseFloat(i.pr).toLocaleString('es-AR')}</td>
+                <td style="text-align:right; font-weight:bold;">${subtotal}</td>
+            </tr>`;
+    });
+
+    const fecha    = t.fecha || new Date().toLocaleString('es-AR');
+    const vendedor = t.vendedor ? `<div style="font-size:8pt; margin-top:2px;">Vendedor: ${t.vendedor}</div>` : '';
+    const totalStr = '$' + (t.total || 0).toLocaleString('es-AR');
+
+    // ── DATOS ARCA / AFIP (obligatorios para validez legal) ──
+    const CUIT_EMISOR = '20-32850879-7';
+    const RAZON_SOCIAL = 'ACOSTA EDUARDO FABIAN';
+    const PTO_VTA     = String(t.ptoVta || 3).padStart(5, '0');
+    const NRO_COMP    = String(t.nroComprobante || 0).padStart(8, '0');
+    const TIPO_COMP   = '011'; // Factura C
+
+    // Generar URL de verificación QR de ARCA (formato oficial RG 4291)
+    let qrSection = '';
+    let caeSection = '';
+
+    if (t.cae && t.cae !== '' && t.cae_pendiente !== true) {
+        // URL oficial de verificación ARCA
+        const fechaComp = new Date().toISOString().slice(0,10).replace(/-/g,'');
+        const qrData = {
+            ver:    1,
+            fecha:  fechaComp,
+            cuit:   20328508797,
+            ptoVta: parseInt(PTO_VTA),
+            tipoCmp: 11,
+            nroCmp:  parseInt(NRO_COMP),
+            importe: t.total,
+            moneda: 'PES',
+            ctz:    1,
+            tipoDocRec: 99,
+            nroDocRec:  0,
+            tipoCodAut: 'E',
+            codAut:     parseInt(t.cae)
+        };
+
+        const qrUrl = 'https://www.afip.gob.ar/fe/qr/?p=' +
+            btoa(JSON.stringify(qrData));
+
+        // Generar QR usando API pública de Google Charts
+        const qrImgUrl = `https://chart.googleapis.com/chart?chs=120x120&cht=qr&chl=${encodeURIComponent(qrUrl)}&choe=UTF-8`;
+
+        const vtoCAE = t.vencimientoCAE
+            ? t.vencimientoCAE.replace(/(\d{4})(\d{2})(\d{2})/, '$3/$2/$1')
+            : '';
+
+        qrSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
+                <img src="${qrImgUrl}" width="80" height="80"
+                     style="flex-shrink:0;"
+                     alt="QR ARCA">
+                <div style="font-size:7.5pt; line-height:1.5;">
+                    <div style="font-weight:900; font-size:8pt;">Comprobante Autorizado</div>
+                    <div>CAE: <b>${t.cae}</b></div>
+                    <div>Vto. CAE: <b>${vtoCAE}</b></div>
+                    <div>Comp. N°: ${PTO_VTA}-${NRO_COMP}</div>
+                </div>
+            </div>`;
+
+        caeSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="font-size:7pt; text-align:center; color:#333;">
+                Verifique este comprobante en www.afip.gob.ar/fe/qr
+            </div>`;
+    } else if (t.tipo_comprobante === 'Presupuesto') {
+        caeSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="font-size:8pt; text-align:center; font-weight:bold; color:#555;">
+                PRESUPUESTO — No válido como factura
+            </div>`;
+    } else {
+        caeSection = `
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="font-size:7.5pt; text-align:center; color:#888;">
+                Ticket No Fiscal — Sin valor fiscal
+            </div>`;
+    }
+
+    container.innerHTML = `
+        <div style="
+            width: 100%;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+            color: black;
+            background: white;
+            box-sizing: border-box;
+        ">
+            <!-- ENCABEZADO -->
+            <div style="text-align:center; margin-bottom:4px;">
+                <div style="font-size:13pt; font-weight:900; letter-spacing:1px;">GestOK</div>
+                <div style="font-size:8.5pt; font-weight:700;">${RAZON_SOCIAL}</div>
+                <div style="font-size:8pt;">CUIT: ${CUIT_EMISOR}</div>
+                <div style="font-size:8.5pt; font-weight:700;">${t.tipo_comprobante || 'Ticket No Fiscal'}</div>
+                <div style="font-size:8pt;">${fecha}</div>
+                ${vendedor}
+            </div>
+
+            <div style="border-top:1px dashed #000; margin:4px 0;"></div>
+
+            <!-- ITEMS -->
+            <table style="width:100%; border-collapse:collapse; font-size:9pt; table-layout:fixed;">
+                <colgroup>
+                    <col style="width:65%;">
+                    <col style="width:35%;">
+                </colgroup>
+                ${filas}
+            </table>
+
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+
+            <!-- TOTAL -->
+            <table style="width:100%; border-collapse:collapse; font-size:12pt; font-weight:900;">
+                <tr>
+                    <td style="padding:2px 0;">TOTAL:</td>
+                    <td style="text-align:right; padding:2px 0;">${totalStr}</td>
+                </tr>
+            </table>
+
+            <!-- MÉTODO DE PAGO -->
+            <div style="text-align:center; font-size:8.5pt; margin-top:4px;">${t.metodo_pago || ''}</div>
+
+            <!-- QR Y CAE (solo si tiene CAE válido) -->
+            ${qrSection}
+            ${caeSection}
+
+            <!-- PIE -->
+            <div style="border-top:1px dashed #000; margin:6px 0;"></div>
+            <div style="text-align:center; font-size:8pt; color:#555; margin-top:4px;">¡Gracias por su compra!</div>
+
+            <!-- Espacio final para corte -->
+            <div style="margin-top:16px;">&nbsp;</div>
+        </div>
+    `;
+}
+
+// ─────────────────────────────────────────
+// 5. HISTORIAL DIARIO
+// ─────────────────────────────────────────
+async function cargarHistorial() {
+    const fechaSeleccionada = document.getElementById('filtro-fecha').value;
+    if (!fechaSeleccionada) return;
+
+    const tbody = document.getElementById('tabla-historial-body');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;opacity:.5;">Cargando...</td></tr>';
+
+    try {
+        // Convertir fecha seleccionada a formato dd/mm/yyyy para buscar en Firebase
+        const [anio, mes, dia] = fechaSeleccionada.split('-');
+        const prefijoBusqueda = `${dia}/${mes}/${anio}`;
+
+        // Filtrar directamente en Firebase por fecha (evita traer todo)
+        const snapshot = await window.fs.getDocs(
+            window.fs.query(
+                window.fs.collection(window.db, "ventas"),
+                window.fs.where("fecha", ">=", prefijoBusqueda),
+                window.fs.where("fecha", "<=", prefijoBusqueda + ""),
+                window.fs.limit(200)
+            )
+        );
+
+        let totales = { "Efectivo": 0, "Tarjeta de Credito": 0, "Tarjeta de Debito": 0, "Transferencia": 0 };
+        tbody.innerHTML = '';
+        let count = 0;
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            count++;
+            if (totales[data.metodo_pago] !== undefined) totales[data.metodo_pago] += data.total;
+            const hora = data.fecha.split(',')[1]?.trim() || '';
+            const caeStatus = data.cae_pendiente
+                ? `<span style="background:rgba(239,68,68,0.12);color:var(--danger);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">⚠️ Sin CAE</span>`
+                : data.cae
+                    ? `<span style="background:rgba(34,197,94,0.1);color:var(--success);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">✅ CAE: ${data.cae}</span>`
+                    : `<span style="opacity:.4;font-size:11px;">${data.tipo_comprobante || ''}</span>`;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${hora}</td>
+                    <td>${data.metodo_pago}</td>
+                    <td style="font-weight:700;">$${data.total.toLocaleString('es-AR')}</td>
+                    <td>${caeStatus}</td>
+                </tr>`;
+        });
+
+        if (count === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;opacity:.5;">Sin ventas para esta fecha</td></tr>';
+        }
+
+        document.getElementById('res-efectivo').innerText = '$ ' + totales["Efectivo"].toLocaleString('es-AR');
+        document.getElementById('res-credito').innerText  = '$ ' + totales["Tarjeta de Credito"].toLocaleString('es-AR');
+        document.getElementById('res-debito').innerText   = '$ ' + totales["Tarjeta de Debito"].toLocaleString('es-AR');
+        document.getElementById('res-transf').innerText   = '$ ' + totales["Transferencia"].toLocaleString('es-AR');
+
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--danger);">Error cargando historial</td></tr>';
+    }
+}
+
+// ─────────────────────────────────────────
+// 6. ESTADÍSTICAS
+// ─────────────────────────────────────────
+async function cargarEstadisticas() {
+    const tipo         = document.getElementById('tipo-grafica').value;
+    const mesSeleccionado = document.getElementById('filtro-mes-estadistica').value;
+    const [anioSel, mesSel] = mesSeleccionado.split('-');
+
+    try {
+        const snapshot = await window.fs.getDocs(window.fs.collection(window.db, "ventas"));
+
+        // Datos globales para el gráfico
+        let datosAgrupados = {};
+
+        // Datos por vendedor: { 'Usuario V1': { ventas: 0, total: 0 }, ... }
+        let porVendedor = {};
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const [fechaParte] = data.fecha.split(',');
+            const [d, m, y]   = fechaParte.trim().split('/');
+            const itemMes  = m.padStart(2,'0');
+            const itemAnio = y;
+            const itemDia  = d.padStart(2,'0');
+            const vendedor = data.vendedor || 'Sin especificar';
+
+            // Acumular por vendedor (sin filtro de mes — muestra histórico total)
+            if (!porVendedor[vendedor]) porVendedor[vendedor] = { ventas: 0, total: 0 };
+            porVendedor[vendedor].ventas++;
+            porVendedor[vendedor].total += data.total || 0;
+
+            // Gráfico filtrado por mes/año seleccionado
+            if (tipo === 'diaria') {
+                if (itemAnio === anioSel && itemMes === mesSel) {
+                    const etiqueta = `${itemDia}/${itemMes}`;
+                    datosAgrupados[etiqueta] = (datosAgrupados[etiqueta] || 0) + data.total;
+                }
+            } else {
+                if (itemAnio === anioSel) {
+                    const nombreMes = obtenerNombreMes(parseInt(itemMes));
+                    datosAgrupados[nombreMes] = (datosAgrupados[nombreMes] || 0) + data.total;
                 }
             }
-
-            if (imprimir) {
-                generarTicketImpresion(ticket);
-                setTimeout(() => {
-                    document.activeElement && document.activeElement.blur();
-                    document.querySelectorAll('input').forEach(i => i.blur());
-                    window.print();
-                }, 500);
-            }
-
-            mostrarToast('Venta registrada — Panel ' + panel + ' — $' + splitTotales[panel].toLocaleString('es-AR'));
-            splitCarritos[panel] = [];
-            splitRenderizar(panel);
-            splitCerrarCobro();
-            inicializar();
-
-        } catch(err) {
-            console.error(err);
-            mostrarToast('Error al procesar la venta.');
-        }
-    }
-
-
-    // ══════════════════════════════════════════
-    //  BUSCADOR DE PRODUCTOS
-    // ══════════════════════════════════════════
-    async function abrirBuscadorProductos() {
-        // Si no hay productos en cache, cargar primero
-        if (DB_PRODUCTOS.length === 0) {
-            document.getElementById('buscador-count').textContent = 'Cargando productos...';
-            document.getElementById('modal-buscador').style.display = 'flex';
-            try {
-                const snap = await window.fs.getDocs(window.fs.collection(window.db, 'articulos'));
-                DB_PRODUCTOS = [];
-                snap.forEach(d => DB_PRODUCTOS.push(d.data()));
-            } catch(e) {
-                mostrarToast('❌ Error cargando productos');
-                return;
-            }
-        }
-
-        document.getElementById('buscador-input').value = '';
-        document.getElementById('buscador-count').textContent = DB_PRODUCTOS.length + ' productos disponibles';
-        document.getElementById('buscador-lista').innerHTML = `
-            <div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">
-                Escribí al menos 2 caracteres para buscar
-            </div>`;
-        document.getElementById('modal-buscador').style.display = 'flex';
-        setTimeout(() => document.getElementById('buscador-input').focus(), 200);
-    }
-
-    function cerrarBuscadorProductos() {
-        document.getElementById('modal-buscador').style.display = 'none';
-        // Devolver foco al scanner
-        setTimeout(() => document.getElementById('lector-barras')?.focus(), 200);
-    }
-
-    function filtrarBuscador(val) {
-        const lista = document.getElementById('buscador-lista');
-        const count = document.getElementById('buscador-count');
-
-        if (val.length < 2) {
-            lista.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">Escribí al menos 2 caracteres para buscar</div>';
-            count.textContent = DB_PRODUCTOS.length + ' productos disponibles';
-            return;
-        }
-
-        const termino = val.toLowerCase().trim();
-        const resultados = DB_PRODUCTOS.filter(p =>
-            p.det.toLowerCase().includes(termino) ||
-            String(p.cod).includes(termino)
-        ).slice(0, 50); // máximo 50 resultados
-
-        count.textContent = resultados.length === 0
-            ? 'Sin resultados para "' + val + '"'
-            : resultados.length + ' resultado' + (resultados.length !== 1 ? 's' : '');
-
-        if (resultados.length === 0) {
-            lista.innerHTML = `
-                <div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">
-                    <i class="fas fa-search" style="font-size:2rem; margin-bottom:10px; display:block; opacity:.3;"></i>
-                    No se encontraron productos
-                </div>`;
-            return;
-        }
-
-        lista.innerHTML = resultados.map(p => {
-            const esPeso = p.por_peso;
-            const precioLabel = '$' + parseFloat(p.pr).toLocaleString('es-AR') + (esPeso ? '/kg' : '');
-            const pesoTag = esPeso ? '<span style="background:rgba(56,189,248,0.12);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:10px;margin-left:6px;">⚖️ x kg</span>' : '';
-            const stockLabel = parseFloat(p.stock) > 0
-                ? `<span style="color:var(--success); font-size:11px;">Stock: ${parseFloat(p.stock).toFixed(p.por_peso?3:0)}</span>`
-                : `<span style="color:var(--muted); font-size:11px;">Sin stock</span>`;
-
-            return `<div onclick="seleccionarProductoBuscador('${p.cod}')" style="
-                display:flex; align-items:center; justify-content:space-between;
-                padding:14px 18px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04);
-                transition:background .15s;
-            " onmouseenter="this.style.background='rgba(56,189,248,0.06)'"
-               onmouseleave="this.style.background=''"
-            >
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                        ${p.det}${pesoTag}
-                    </div>
-                    <div style="font-size:11px; color:var(--muted); margin-top:2px; font-family:monospace;">${p.cod}</div>
-                </div>
-                <div style="text-align:right; flex-shrink:0; margin-left:16px;">
-                    <div style="font-weight:800; font-size:15px; color:var(--accent);">${precioLabel}</div>
-                    <div>${stockLabel}</div>
-                </div>
-                <div style="margin-left:12px; color:var(--accent); font-size:16px; opacity:.6;">+</div>
-            </div>`;
-        }).join('');
-    }
-
-    function seleccionarProductoBuscador(cod) {
-        const prod = DB_PRODUCTOS.find(p => String(p.cod) === String(cod));
-        if (!prod) return;
-
-        cerrarBuscadorProductos();
-
-        // Si es por peso, abrir modal de peso
-        if (prod.por_peso) {
-            abrirModalPeso(prod);
-        } else {
-            agregarAlCarrito(prod, 1);
-        }
-    }
-
-    // Cerrar con Escape
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && document.getElementById('modal-buscador').style.display === 'flex') {
-            cerrarBuscadorProductos();
-        }
-    });
-
-</script>
-<script>
-    // ── BLOQUEAR DEVTOOLS ──────────────────────────
-    // Deshabilitar F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'F12') { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) { e.preventDefault(); return false; }
-        if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) { e.preventDefault(); return false; }
-        if (e.ctrlKey && (e.key === 'S' || e.key === 's')) { e.preventDefault(); return false; }
-    });
-
-    // Deshabilitar clic derecho
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        return false;
-    });
-
-    // Detectar si DevTools está abierto y redirigir
-    (function() {
-        const threshold = 160;
-        setInterval(() => {
-            if (window.outerWidth - window.innerWidth > threshold ||
-                window.outerHeight - window.innerHeight > threshold) {
-                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#f1f5f9;font-family:sans-serif;font-size:1.5rem;font-weight:700;">⛔ Acceso no permitido</div>';
-            }
-        }, 1000);
-    })();
-
-    // ── REGISTRAR SERVICE WORKER ───────────────────
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log('GestOK PWA activa'))
-                .catch(err => console.log('SW error:', err));
         });
-    }
 
-    // ── BOTÓN DE INSTALACIÓN PWA ───────────────────
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        // Mostrar botón de instalación si existe
-        const btnInstall = document.getElementById('btn-instalar-pwa');
-        if (btnInstall) btnInstall.style.display = 'flex';
-    });
+        const etiquetas = Object.keys(datosAgrupados).sort();
+        const valores   = etiquetas.map(k => datosAgrupados[k]);
+        renderizarGraficoGeneral(etiquetas, valores, tipo === 'diaria' ? 'Ventas del Mes ($)' : 'Ventas del Año ($)');
+        renderizarTablaVendedores(porVendedor);
 
-    window.addEventListener('appinstalled', () => {
-        deferredPrompt = null;
-        const btnInstall = document.getElementById('btn-instalar-pwa');
-        if (btnInstall) btnInstall.style.display = 'none';
-    });
+    } catch (e) { console.error(e); }
+}
 
-    function instalarPWA() {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+
+function renderizarGraficoGeneral(labels, data, titulo) {
+    const ctx = document.getElementById('graficoGeneral').getContext('2d');
+    if (graficoGeneral) graficoGeneral.destroy();
+    graficoGeneral = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: titulo, data,
+                backgroundColor: 'rgba(56,189,248,0.7)',
+                borderColor: '#38bdf8',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+                y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+            }
         }
+    });
+}
+
+function obtenerNombreMes(n) {
+    return ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][n-1];
+}
+
+// ─────────────────────────────────────────
+// 7. GESTIÓN DE ARTÍCULOS
+// ─────────────────────────────────────────
+async function subirProductoAFirebase() {
+    const nuevo = {
+        cod:      document.getElementById('nuevo-cod').value.trim(),
+        det:      document.getElementById('nuevo-det').value.toUpperCase().trim(),
+        pr:       parseFloat(document.getElementById('nuevo-pr').value),
+        stock:    parseFloat(document.getElementById('nuevo-stock').value) || 0,
+        por_peso: document.getElementById('nuevo-por-peso')?.checked || false
+    };
+    if (!nuevo.cod || !nuevo.det || isNaN(nuevo.pr)) {
+        mostrarToast('⚠️ Completá todos los campos.');
+        return;
     }
-</script>
-</body>
-</html>
+    await window.fs.addDoc(window.fs.collection(window.db, "articulos"), nuevo);
+    // Limpiar checkbox
+    const chk = document.getElementById('nuevo-por-peso');
+    if (chk) chk.checked = false;
+    cerrarModalProducto();
+    cargarTodosLosProductos();
+}
+
+async function actualizarProductoEnFirebase() {
+    const cod = document.getElementById('edit-id').value;
+    const q   = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod","==",cod));
+    const snap = await window.fs.getDocs(q);
+    if (!snap.empty) {
+        await window.fs.updateDoc(window.fs.doc(window.db, "articulos", snap.docs[0].id), {
+            det:      document.getElementById('edit-det').value.toUpperCase(),
+            pr:       parseFloat(document.getElementById('edit-pr').value),
+            stock:    parseFloat(document.getElementById('edit-stock').value),
+            por_peso: document.getElementById('edit-por-peso')?.checked || false
+        });
+        cerrarModalEditar();
+        cargarTodosLosProductos();
+    }
+}
+
+async function eliminarArticuloSistema(codigo) {
+    if (!confirm('¿Eliminar artículo?')) return;
+    const q    = window.fs.query(window.fs.collection(window.db, "articulos"), window.fs.where("cod","==",codigo));
+    const snap = await window.fs.getDocs(q);
+    if (!snap.empty) {
+        await window.fs.deleteDoc(window.fs.doc(window.db, "articulos", snap.docs[0].id));
+        cargarTodosLosProductos();
+    }
+}
+
+function renderizarTablaInventario(lista = DB_PRODUCTOS) {
+    const tbody = document.getElementById('tabla-inventario-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    lista.sort((a,b) => a.det.localeCompare(b.det)).forEach(p => {
+        const stockColor = p.stock <= 0 ? 'color:var(--danger)' : p.stock < 5 ? 'color:var(--warning)' : '';
+        tbody.innerHTML += `
+            <tr>
+                <td style="font-family:monospace; color:var(--muted);">${p.cod}</td>
+                <td style="font-weight:500;">${p.det} ${p.por_peso ? '<span style="background:rgba(56,189,248,0.12);color:var(--accent);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;margin-left:6px;">⚖️ x kg</span>' : ''}</td>
+                <td>$ ${parseFloat(p.pr).toLocaleString('es-AR')}${p.por_peso ? '/kg' : ''}</td>
+                <td style="font-weight:700; ${stockColor}">${parseFloat(p.stock).toFixed(3)}</td>
+                <td style="display:flex; gap:8px;">
+                    <button class="btn btn-confirm" style="padding:6px 14px; width:auto;" onclick="prepararEdicion('${p.cod}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-clear" style="padding:6px 14px; width:auto;" onclick="eliminarArticuloSistema('${p.cod}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+    });
+}
+
+function filtrarArticulos(val) {
+    const f = DB_PRODUCTOS.filter(p =>
+        p.det.toLowerCase().includes(val.toLowerCase()) || String(p.cod).includes(val)
+    );
+    renderizarTablaInventario(f);
+}
+
+function prepararEdicion(cod) {
+    const p = DB_PRODUCTOS.find(x => x.cod === cod);
+    if (!p) return;
+    document.getElementById('edit-id').value    = p.cod;
+    document.getElementById('edit-det').value   = p.det;
+    document.getElementById('edit-pr').value    = p.pr;
+    document.getElementById('edit-stock').value = p.stock;
+    const chk = document.getElementById('edit-por-peso');
+    if (chk) chk.checked = p.por_peso || false;
+    document.getElementById('modal-editar').style.display = 'flex';
+}
+
+function cerrarModalProducto() { document.getElementById('modal-producto').style.display = 'none'; }
+function cerrarModalEditar()   { document.getElementById('modal-editar').style.display = 'none'; }
+function abrirModalProducto()  { document.getElementById('modal-producto').style.display = 'flex'; }
+
+// ─────────────────────────────────────────
+// INICIO
+// ─────────────────────────────────────────
+setTimeout(inicializar, 1000);
+setTimeout(reintentarFacturasPendientes, 5000); // Reintentar pendientes al iniciar
+
+// ─────────────────────────────────────────
+// REINTENTO AUTOMÁTICO DE FACTURAS PENDIENTES
+// ─────────────────────────────────────────
+async function reintentarFacturasPendientes() {
+    try {
+        const snap = await window.fs.getDocs(
+            window.fs.query(
+                window.fs.collection(window.db, "ventas"),
+                window.fs.where("cae_pendiente", "==", true)
+            )
+        );
+
+        if (snap.empty) return;
+
+        console.log(`🔄 ${snap.size} venta(s) pendiente(s) de facturar...`);
+        mostrarToast(`🔄 Reintentando ${snap.size} factura(s) pendiente(s)...`);
+
+        let exitosas = 0;
+        for (const docSnap of snap.docs) {
+            const venta = docSnap.data();
+            try {
+                const datos = await generarFacturaARCA(venta);
+                await window.fs.updateDoc(
+                    window.fs.doc(window.db, "ventas", docSnap.id),
+                    {
+                        cae:            datos.cae,
+                        vencimientoCAE: datos.vencimientoCAE,
+                        nroComprobante: datos.nroComprobante,
+                        cae_pendiente:  false,
+                        error_arca:     null
+                    }
+                );
+                exitosas++;
+                console.log(`✅ Factura retroactiva emitida: CAE ${datos.cae}`);
+            } catch (e) {
+                console.warn(`❌ No se pudo facturar venta del ${venta.fecha}:`, e.message);
+            }
+        }
+
+        if (exitosas > 0) {
+            mostrarToast(`✅ ${exitosas} factura(s) emitida(s) retroactivamente`);
+        }
+        // Si falla silenciosamente — no molestar al vendedor con errores de ARCA
+
+    } catch (e) {
+        // Si no hay ventas pendientes o falla la consulta, ignorar silenciosamente
+        console.log('Sin ventas pendientes o error al consultar:', e.message);
+    }
+}
+
+// ─────────────────────────────────────────
+// TABLA DE RENDIMIENTO POR VENDEDOR
+// ─────────────────────────────────────────
+function renderizarTablaVendedores(porVendedor) {
+    const container = document.getElementById('tabla-vendedores');
+    if (!container) return;
+
+    const vendedores = Object.entries(porVendedor)
+        .sort((a, b) => b[1].total - a[1].total);
+
+    if (vendedores.length === 0) {
+        container.innerHTML = '<p style="opacity:.4; text-align:center; padding:20px;">Sin datos de ventas aún.</p>';
+        return;
+    }
+
+    const totalGeneral = vendedores.reduce((s, [, v]) => s + v.total, 0);
+    const totalVentas  = vendedores.reduce((s, [, v]) => s + v.ventas, 0);
+
+    // Colores por usuario
+    const colores = {
+        'Sandra':  { bg: 'rgba(56,189,248,0.1)',  border: 'rgba(56,189,248,0.3)',  color: '#38bdf8' },
+        'Tamara':  { bg: 'rgba(168,85,247,0.1)',  border: 'rgba(168,85,247,0.3)',  color: '#a855f7' },
+        'Fabian':  { bg: 'rgba(245,158,11,0.1)',  border: 'rgba(245,158,11,0.3)',  color: '#f59e0b' },
+    };
+    const colorDefault = { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)', color: '#94a3b8' };
+
+    let html = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:24px;">
+            ${vendedores.map(([nombre, datos]) => {
+                const c = colores[nombre] || colorDefault;
+                const pct = totalGeneral > 0 ? ((datos.total / totalGeneral) * 100).toFixed(1) : 0;
+                return `
+                <div style="background:${c.bg}; border:1px solid ${c.border}; border-radius:16px; padding:20px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                        <div style="width:10px;height:10px;border-radius:50%;background:${c.color};flex-shrink:0;"></div>
+                        <span style="font-weight:700; font-size:14px;">${nombre}</span>
+                    </div>
+                    <div style="margin-bottom:10px;">
+                        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Monto vendido</div>
+                        <div style="font-size:26px;font-weight:900;color:${c.color};">$${datos.total.toLocaleString('es-AR')}</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+                        <div>
+                            <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Tickets</div>
+                            <div style="font-size:18px;font-weight:700;">${datos.ventas}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Ticket promedio</div>
+                            <div style="font-size:18px;font-weight:700;">$${datos.ventas > 0 ? Math.round(datos.total / datos.ventas).toLocaleString('es-AR') : 0}</div>
+                        </div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.2);border-radius:6px;height:6px;overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:${c.color};border-radius:6px;transition:.5s;"></div>
+                    </div>
+                    <div style="font-size:11px;color:#64748b;margin-top:5px;text-align:right;">${pct}% del total</div>
+                </div>`;
+            }).join('')}
+        </div>
+
+        <table class="v-table">
+            <thead>
+                <tr>
+                    <th>Vendedor</th>
+                    <th style="text-align:center;">Tickets cerrados</th>
+                    <th style="text-align:right;">Ticket promedio</th>
+                    <th style="text-align:right;">Total vendido</th>
+                    <th style="text-align:right;">Participación</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${vendedores.map(([nombre, datos]) => {
+                    const c   = colores[nombre] || colorDefault;
+                    const pct = totalGeneral > 0 ? ((datos.total / totalGeneral) * 100).toFixed(1) : 0;
+                    const avg = datos.ventas > 0 ? Math.round(datos.total / datos.ventas) : 0;
+                    return `<tr>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="width:8px;height:8px;border-radius:50%;background:${c.color};"></div>
+                                <span style="font-weight:600;">${nombre}</span>
+                            </div>
+                        </td>
+                        <td style="text-align:center;font-weight:700;">${datos.ventas}</td>
+                        <td style="text-align:right;color:#94a3b8;">$${avg.toLocaleString('es-AR')}</td>
+                        <td style="text-align:right;font-weight:800;color:${c.color};">$${datos.total.toLocaleString('es-AR')}</td>
+                        <td style="text-align:right;">
+                            <span style="background:${c.bg};color:${c.color};border:1px solid ${c.border};border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">${pct}%</span>
+                        </td>
+                    </tr>`;
+                }).join('')}
+                <tr style="border-top:2px solid rgba(255,255,255,0.1);">
+                    <td style="font-weight:700;opacity:.6;">TOTAL</td>
+                    <td style="text-align:center;font-weight:900;">${totalVentas}</td>
+                    <td style="text-align:right;color:#94a3b8;">$${totalVentas > 0 ? Math.round(totalGeneral / totalVentas).toLocaleString('es-AR') : 0}</td>
+                    <td style="text-align:right;font-weight:900;font-size:15px;">$${totalGeneral.toLocaleString('es-AR')}</td>
+                    <td style="text-align:right;">
+                        <span style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">100%</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+
+    container.innerHTML = html;
+}
+
+// ─────────────────────────────────────────
+// FACTURACIÓN ARCA — INTEGRACIÓN DIRECTA
+// ─────────────────────────────────────────
+const ARCA_SERVER = 'https://gestok-server-production.up.railway.app';
+
+async function generarFacturaARCA(ticket) {
+    try {
+        const response = await fetch(`${ARCA_SERVER}/facturar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                total:    ticket.total,
+                items:    ticket.items,
+                vendedor: ticket.vendedor || 'GestOK'
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Error del servidor ARCA');
+        }
+
+        const datos = await response.json();
+        return datos; // { cae, vencimientoCAE, nroComprobante, ptoVta, cuit }
+
+    } catch (e) {
+        console.error('Error ARCA:', e.message);
+        throw e;
+    }
+}
