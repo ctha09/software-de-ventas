@@ -7,28 +7,66 @@ let graficoGeneral = null;
 // 1. INICIALIZACIÓN
 // ─────────────────────────────────────────
 async function inicializar() {
-    // Con muchos productos NO cargamos todo al inicio — solo renderizamos
-    // lo que ya tengamos en cache y dejamos que el scanner busque en Firebase
-    console.log("📦 GestOK: Iniciado. Los productos se buscan en Firebase al escanear.");
+    console.log("📦 GestOK: Iniciado. Precargando productos en segundo plano...");
     renderizarTablaInventario();
+    // Precargar productos en segundo plano sin bloquear la UI
+    precargarProductos();
+}
+
+let _precargando = false;
+let _precargaCompleta = false;
+
+async function precargarProductos() {
+    if (_precargando || _precargaCompleta) return;
+    _precargando = true;
+    try {
+        const snap = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
+        DB_PRODUCTOS = [];
+        snap.forEach(doc => DB_PRODUCTOS.push(doc.data()));
+        _precargaCompleta = true;
+        _precargando = false;
+        console.log("📦 Precarga completa:", DB_PRODUCTOS.length, "productos listos");
+    } catch(e) {
+        _precargando = false;
+        console.error("Error en precarga:", e);
+    }
 }
 
 // Carga todos los productos — solo se llama desde la sección Artículos
 async function cargarTodosLosProductos() {
     const tbody = document.getElementById('tabla-inventario-body');
     try {
-        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;opacity:.5;">⏳ Cargando inventario...</td></tr>';
+        // Si ya están precargados mostrar instantáneamente
+        if (_precargaCompleta && DB_PRODUCTOS.length > 0) {
+            renderizarTablaInventario();
+            return;
+        }
 
+        // Si están cargando, esperar
+        if (_precargando) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;opacity:.5;">⏳ Cargando inventario...</td></tr>';
+            // Esperar hasta que termine la precarga (máx 15 segundos)
+            let intentos = 0;
+            while (_precargando && intentos < 30) {
+                await new Promise(r => setTimeout(r, 500));
+                intentos++;
+            }
+            renderizarTablaInventario();
+            return;
+        }
+
+        // Si no hay nada, cargar ahora
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;opacity:.5;">⏳ Cargando inventario...</td></tr>';
         const snap = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
         DB_PRODUCTOS = [];
         snap.forEach(doc => DB_PRODUCTOS.push(doc.data()));
+        _precargaCompleta = true;
         renderizarTablaInventario();
         mostrarToast('✅ ' + DB_PRODUCTOS.length + ' productos cargados');
 
     } catch (error) {
         console.error("Error al cargar inventario:", error);
         if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--danger);">❌ Error de conexión — Verificá tu red</td></tr>';
-        mostrarToast('❌ Error al cargar inventario');
     }
 }
 
