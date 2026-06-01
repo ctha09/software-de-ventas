@@ -20,9 +20,17 @@ async function precargarProductos() {
     if (_precargando || _precargaCompleta) return;
     _precargando = true;
     try {
+        // Usar getDocs normal pero procesar en chunks para no bloquear el navegador
         const snap = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
         DB_PRODUCTOS = [];
-        snap.forEach(doc => DB_PRODUCTOS.push(doc.data()));
+        const docs = snap.docs;
+        const CHUNK = 100;
+        for (let i = 0; i < docs.length; i += CHUNK) {
+            const lote = docs.slice(i, i + CHUNK);
+            lote.forEach(doc => DB_PRODUCTOS.push(doc.data()));
+            // Ceder control al navegador entre lotes para no congelarlo
+            await new Promise(r => setTimeout(r, 0));
+        }
         _precargaCompleta = true;
         _precargando = false;
         console.log("📦 Precarga completa:", DB_PRODUCTOS.length, "productos listos");
