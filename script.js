@@ -6,76 +6,85 @@ let graficoGeneral = null;
 // ─────────────────────────────────────────
 // 1. INICIALIZACIÓN
 // ─────────────────────────────────────────
+// ── CACHE LOCAL DE PRODUCTOS ─────────────────────────────────
+// Guarda los productos en localStorage para carga instantánea
+const CACHE_KEY     = 'gestok_productos_v1';
+const CACHE_MAX_AGE = 1000 * 60 * 60 * 4; // 4 horas
+
+let _precargaCompleta = false;
+let _precargando      = false;
+
 async function inicializar() {
-    console.log("📦 GestOK: Iniciado. Precargando productos en segundo plano...");
-    renderizarTablaInventario();
-    // Precargar productos en segundo plano sin bloquear la UI
-    precargarProductos();
+    // 1. Cargar desde cache local (instantáneo)
+    const cache = _leerCache();
+    if (cache) {
+        DB_PRODUCTOS      = cache;
+        _precargaCompleta = true;
+        console.log("📦 Cache local:", DB_PRODUCTOS.length, "productos (instantáneo)");
+        renderizarTablaInventario();
+        // Actualizar cache en segundo plano si tiene más de 1 hora
+        setTimeout(precargarProductos, 3000);
+    } else {
+        // Sin cache — cargar desde Firebase
+        renderizarTablaInventario();
+        precargarProductos();
+    }
 }
 
-let _precargando = false;
-let _precargaCompleta = false;
+function _leerCache() {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts > CACHE_MAX_AGE) return null;
+        return data;
+    } catch(e) { return null; }
+}
+
+function _guardarCache(productos) {
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: productos }));
+    } catch(e) { console.warn("Cache lleno:", e); }
+}
+
+function _limpiarCache() {
+    localStorage.removeItem(CACHE_KEY);
+}
 
 async function precargarProductos() {
-    if (_precargando || _precargaCompleta) return;
+    if (_precargando) return;
     _precargando = true;
     try {
-        // Usar getDocs normal pero procesar en chunks para no bloquear el navegador
         const snap = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
-        DB_PRODUCTOS = [];
-        const docs = snap.docs;
-        const CHUNK = 100;
-        for (let i = 0; i < docs.length; i += CHUNK) {
-            const lote = docs.slice(i, i + CHUNK);
-            lote.forEach(doc => DB_PRODUCTOS.push(doc.data()));
-            // Ceder control al navegador entre lotes para no congelarlo
-            await new Promise(r => setTimeout(r, 0));
-        }
+        const nuevos = [];
+        snap.forEach(doc => nuevos.push(doc.data()));
+
+        DB_PRODUCTOS      = nuevos;
         _precargaCompleta = true;
-        _precargando = false;
-        console.log("📦 Precarga completa:", DB_PRODUCTOS.length, "productos listos");
+        _precargando      = false;
+
+        // Guardar en cache local para próxima vez
+        _guardarCache(nuevos);
+        console.log("📦 Firebase sync:", DB_PRODUCTOS.length, "productos — cache actualizado");
+
     } catch(e) {
         _precargando = false;
-        console.error("Error en precarga:", e);
+        console.error("Error sincronizando productos:", e);
     }
 }
 
 // Carga todos los productos — solo se llama desde la sección Artículos
 async function cargarTodosLosProductos() {
-    const tbody = document.getElementById('tabla-inventario-body');
-    try {
-        // Si ya están precargados mostrar instantáneamente
-        if (_precargaCompleta && DB_PRODUCTOS.length > 0) {
-            renderizarTablaInventario();
-            return;
-        }
-
-        // Si están cargando, esperar
-        if (_precargando) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;opacity:.5;">⏳ Cargando inventario...</td></tr>';
-            // Esperar hasta que termine la precarga (máx 15 segundos)
-            let intentos = 0;
-            while (_precargando && intentos < 30) {
-                await new Promise(r => setTimeout(r, 500));
-                intentos++;
-            }
-            renderizarTablaInventario();
-            return;
-        }
-
-        // Si no hay nada, cargar ahora
-        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;opacity:.5;">⏳ Cargando inventario...</td></tr>';
-        const snap = await window.fs.getDocs(window.fs.collection(window.db, "articulos"));
-        DB_PRODUCTOS = [];
-        snap.forEach(doc => DB_PRODUCTOS.push(doc.data()));
-        _precargaCompleta = true;
+    // Si ya están en memoria mostrar instantáneamente
+    if (_precargaCompleta && DB_PRODUCTOS.length > 0) {
         renderizarTablaInventario();
-        mostrarToast('✅ ' + DB_PRODUCTOS.length + ' productos cargados');
-
-    } catch (error) {
-        console.error("Error al cargar inventario:", error);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--danger);">❌ Error de conexión — Verificá tu red</td></tr>';
+        return;
     }
+    // Si no, cargar desde Firebase
+    const tbody = document.getElementById('tabla-inventario-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;opacity:.5;">⏳ Cargando...</td></tr>';
+    await precargarProductos();
+    renderizarTablaInventario();
 }
 
 // ─────────────────────────────────────────
@@ -841,8 +850,10 @@ async function subirProductoAFirebase() {
     // Limpiar checkbox
     const chk = document.getElementById('nuevo-por-peso');
     if (chk) chk.checked = false;
+    _limpiarCache();
     cerrarModalProducto();
-    cargarTodosLosProductos();
+    await precargarProductos();
+    renderizarTablaInventario();
 }
 
 async function actualizarProductoEnFirebase() {
@@ -856,8 +867,10 @@ async function actualizarProductoEnFirebase() {
             stock:    parseFloat(document.getElementById('edit-stock').value),
             por_peso: document.getElementById('edit-por-peso')?.checked || false
         });
+        _limpiarCache();
         cerrarModalEditar();
-        cargarTodosLosProductos();
+        await precargarProductos();
+        renderizarTablaInventario();
     }
 }
 
